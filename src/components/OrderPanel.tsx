@@ -189,10 +189,6 @@ export function OrderPanel({
           {state.address?.note ? (
             <p className="text-xs text-ink-3">{state.address.note}</p>
           ) : null}
-          <p className="mt-1 text-[0.6875rem] leading-relaxed text-ink-3">
-            {restaurant.name} delivers this order themselves and will call you
-            on this number to confirm.
-          </p>
         </div>
       ) : (
         <GuestCount />

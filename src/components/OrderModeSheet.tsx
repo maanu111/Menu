@@ -97,7 +97,7 @@ export function OrderModeSheet({
         step === "table"
           ? "So the kitchen knows where to bring it."
           : step === "address"
-            ? `${restaurant.name} delivers this order themselves.`
+            ? "Just a name, a number and where to bring it."
             : "How would you like to order?"
       }
     >
@@ -140,8 +140,7 @@ export function OrderModeSheet({
                   Deliver it to me
                 </span>
                 <span className="block text-xs text-ink-2">
-                  {restaurant.deliveryNote?.trim() ||
-                    `${restaurant.name} delivers it themselves.`}
+                  {restaurant.deliveryNote?.trim() || "To your address."}
                   {restaurant.deliveryMin > 0
                     ? ` Minimum ₹${restaurant.deliveryMin}.`
                     : ""}
