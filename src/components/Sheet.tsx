@@ -47,6 +47,16 @@ export function Sheet({
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
 
+  /* Callers routinely pass an inline arrow, which is a new function on every
+     render. If the effect below depended on it, every keystroke inside the
+     sheet would tear the trap down — pulling focus back out — and rebuild it,
+     landing the cursor on the first field. Holding it in a ref keeps the
+     effect tied to what actually changes: whether the sheet is open. */
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -56,7 +66,7 @@ export function Sheet({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && dismissible) {
         e.stopPropagation();
-        onClose();
+        closeRef.current();
         return;
       }
       if (e.key !== "Tab" || !panelRef.current) return;
@@ -89,7 +99,7 @@ export function Sheet({
       unlockScroll();
       restoreTo.current?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose, dismissible]);
+  }, [open, dismissible]);
 
   /* Sheets only ever open from a tap, so the DOM exists by the time this runs. */
   if (!open || typeof document === "undefined") return null;
