@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { BrandLogo } from "./BrandLogo";
-import { ThemeToggle } from "./ThemeToggle";
 import { Sheet } from "./Sheet";
 import { useToast } from "./Toaster";
 import type { Restaurant, TableInfo } from "@/lib/types";
@@ -14,7 +13,7 @@ export function Navbar({
   qrUrl,
 }: {
   restaurant: Restaurant;
-  table: TableInfo;
+  table: TableInfo | null;
   qrSvg: string;
   qrUrl: string;
 }) {
@@ -58,6 +57,7 @@ export function Navbar({
             </p>
           </div>
 
+          {table ? (
           <button
             type="button"
             onClick={() => setQrOpen(true)}
@@ -79,11 +79,12 @@ export function Navbar({
               />
             </svg>
           </button>
+          ) : null}
 
-          <ThemeToggle />
         </nav>
       </header>
 
+      {table ? (
       <Sheet
         open={qrOpen}
         onClose={() => setQrOpen(false)}
@@ -112,6 +113,7 @@ export function Navbar({
           </p>
         </div>
       </Sheet>
+      ) : null}
     </>
   );
 }

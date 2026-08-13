@@ -1,8 +1,10 @@
 "use client";
 
+import { AddOnsRail } from "./AddOnsRail";
+import { DetailsCard } from "./DetailsCard";
 import { useCart } from "@/lib/cart-store";
 import { clsx, money } from "@/lib/format";
-import type { OrderStage } from "@/lib/types";
+import type { MenuItem, OrderStage } from "@/lib/types";
 
 const STEPS: { id: OrderStage; label: string; hint: string }[] = [
   { id: "placed", label: "Sent to kitchen", hint: "Ticket printed" },
@@ -12,7 +14,13 @@ const STEPS: { id: OrderStage; label: string; hint: string }[] = [
   { id: "served", label: "Served", hint: "Enjoy your meal" },
 ];
 
-export function OrderTracker({ onDone }: { onDone?: () => void }) {
+export function OrderTracker({
+  items,
+  onDone,
+}: {
+  items: MenuItem[];
+  onDone?: () => void;
+}) {
   const { state, resetOrder } = useCart();
   if (!state.stage) return null;
 
@@ -113,6 +121,17 @@ export function OrderTracker({ onDone }: { onDone?: () => void }) {
           ))}
         </ul>
 
+        <p className="num mt-3 text-[0.6875rem] text-ink-3">
+          {state.guests} {state.guests === 1 ? "guest" : "guests"} · total{" "}
+          {money(total)} · pay at the counter
+        </p>
+
+        {/* Suggestions and details come after the commitment, never before. */}
+        <div className="mt-4 flex flex-col gap-3 border-t border-dashed border-line pt-4">
+          <AddOnsRail items={items} />
+          <DetailsCard />
+        </div>
+
         {isReady ? (
           <button
             type="button"
@@ -124,11 +143,7 @@ export function OrderTracker({ onDone }: { onDone?: () => void }) {
           >
             Start a new order
           </button>
-        ) : (
-          <p className="num mt-4 text-xs text-ink-3">
-            Total {money(total)} · pay at the counter
-          </p>
-        )}
+        ) : null}
       </div>
     </div>
   );

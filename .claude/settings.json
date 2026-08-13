@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d//**)",
+      "Bash(npx --yes create-next-app@latest menuqr-saas --ts --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-pnpm --no-turbopack --skip-install --yes)",
+      "Read(//d/menuqr-saas/**)",
+      "Bash(pnpm install *)",
+      "Bash(tail -3 \"C:/Users/lenovo/AppData/Local/Temp/claude/d--MENUQR/d08702b1-8727-4f0c-a719-ed764cd8aa5f/tasks/blzlblkh2.output\" 2>/dev/null; echo \"--- node_modules present? ---\"; ls -d \"D:/menuqr-saas/node_modules\" 2>/dev/null || echo \"not yet\")",
+      "Read(//d/menuqr-saas/node_modules/**)",
+      "Bash(pnpm add *)",
+      "Bash(node -e \"console.log\\(require\\('qrcode/package.json'\\).version\\)\")",
+      "Bash(mkdir -p \"D:/RESTAU\")",
+      "Bash(mv \"d:/MENUQR/Restaurant\" \"D:/RESTAU/SAAS\")",
+      "Bash(sed -i '/# Separate SaaS platform repo/,+1d' .gitignore)",
+      "PowerShell($p = Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess; if \\($p\\) { Write-Output \"stopping dev server PID $p\"; Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 1200 } else { Write-Output \"no listener on 3001\" }; Set-Location \"D:\\\\\"; Move-Item -Path \"D:\\\\MENUQR\" -Destination \"D:\\\\RESTAU\\\\MENUQR\" -Force; Write-Output \"--- D:\\\\RESTAU ---\"; Get-ChildItem \"D:\\\\RESTAU\" | Select-Object Name, Mode | Format-Table -AutoSize | Out-String)",
+      "Read(//d/RESTAU/**)",
+      "Read(//d/RESTAU/SAAS/src/app/**)",
+      "Read(//d/RESTAU/SAAS/**)",
+      "Bash(echo \"=== D:\\\\\\\\RESTAU ===\")",
+      "Read(//d/RESTAU/SAAS/node_modules/**)"
+    ],
+    "additionalDirectories": [
+      "D:\\menuqr-saas\\src\\app"
+    ]
+  }
+}

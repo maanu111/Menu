@@ -1,33 +1,30 @@
 import { notFound } from "next/navigation";
-import QRCode from "qrcode";
 import { MenuShell } from "@/components/MenuShell";
+import { ScanLogger } from "@/components/ScanLogger";
 import { ToastProvider } from "@/components/Toaster";
 import { CartProvider } from "@/lib/cart-store";
-import {
-  categories,
-  menuItems,
-  restaurant,
-  table,
-  tableUrl,
-} from "@/lib/mock-data";
+import { getTableMenu } from "@/lib/menu-queries";
+import { qrSvg, tableUrl } from "@/lib/qr";
+import { brandStyle } from "@/lib/brand";
 
-/**
- * Renders the QR that puts everyone else at the table on this same menu.
- * Colours are stripped so the code inherits whichever surface it sits on.
- */
-async function tableQr(url: string) {
-  const svg = await QRCode.toString(url, {
-    type: "svg",
-    margin: 0,
-    errorCorrectionLevel: "M",
-  });
-  return svg
-    .replace(/<\?xml[^>]*\?>/, "")
-    .replace(/\swidth="\d+"/, "")
-    .replace(/\sheight="\d+"/, "")
-    .replace(/#000000/gi, "currentColor")
-    .replace(/fill="#ffffff"/gi, 'fill="none"')
-    .trim();
+export const dynamic = "force-dynamic";
+
+/* The tab, and anything the guest shares, must name their restaurant — not
+   whichever one the platform's default title happens to mention. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; token: string }>;
+}) {
+  const { slug, token } = await params;
+  const menu = await getTableMenu(slug, token);
+  if (!menu) return { title: "Table menu" };
+  return {
+    title: `${menu.restaurant.name} · Table ${menu.table.number}`,
+    description:
+      menu.restaurant.tagline ||
+      `Browse the menu and order from your table at ${menu.restaurant.name}.`,
+  };
 }
 
 export default async function TableMenuPage({
@@ -37,28 +34,35 @@ export default async function TableMenuPage({
 }) {
   const { slug, token } = await params;
 
-  /* A printed QR must resolve to a real table or show nothing at all. */
-  if (slug !== restaurant.slug || token.toUpperCase() !== table.token) {
-    notFound();
-  }
+  /* A printed QR must resolve to a real, open table or show nothing at all. */
+  const menu = await getTableMenu(slug, token);
+  if (!menu) notFound();
 
-  /* Stands in for the menu query — remove once Supabase is wired up. */
-  await new Promise((resolve) => setTimeout(resolve, 450));
-
-  const url = tableUrl(restaurant.slug, table.token);
-  const qrSvg = await tableQr(url);
+  const url = tableUrl(menu.restaurant.slug, menu.table.token);
 
   return (
     <ToastProvider>
-      <CartProvider storageKey={`kt-cart-${slug}-${token}`}>
+      {/* The owner's accent, scoped to this restaurant's page only. Values are
+          validated in brandStyle before they reach the stylesheet. */}
+      <style>{`.brand-scope{${brandStyle(menu.restaurant.brandColor)}}`}</style>
+      <CartProvider
+        storageKey={`kt-cart-${slug}-${token}`}
+        slug={slug}
+        token={token}
+      >
+        <ScanLogger slug={slug} token={token} />
+        <div className="brand-scope contents">
         <MenuShell
-          restaurant={restaurant}
-          table={table}
-          categories={categories}
-          items={menuItems}
-          qrSvg={qrSvg}
+          restaurant={menu.restaurant}
+          table={menu.table}
+          tables={menu.tables}
+          banners={menu.banners}
+          categories={menu.categories}
+          items={menu.items}
+          qrSvg={await qrSvg(url)}
           qrUrl={url}
         />
+        </div>
       </CartProvider>
     </ToastProvider>
   );

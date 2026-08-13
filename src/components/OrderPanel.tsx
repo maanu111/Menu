@@ -1,9 +1,13 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { DietMark } from "./DietMark";
+import { GuestCount } from "./GuestCount";
+import { OfferField } from "./OfferField";
 import { useToast } from "./Toaster";
 import { billFor, useCart } from "@/lib/cart-store";
 import { clsx, money } from "@/lib/format";
+import type { Restaurant } from "@/lib/types";
 
 /**
  * The order itself: lines, bill, and the commit button. Rendered inside the
@@ -12,17 +16,30 @@ import { clsx, money } from "@/lib/format";
 export function OrderPanel({
   gstPercent,
   tableNumber,
+  restaurant,
+  slug,
   onPlaced,
   compact = false,
 }: {
   gstPercent: number;
-  tableNumber: string;
+  /** The table they are sitting at, when dining in. */
+  tableNumber: string | null;
+  restaurant: Restaurant;
+  slug: string;
   onPlaced?: () => void;
   compact?: boolean;
 }) {
-  const { state, inc, dec, remove, clear, subtotal, count, placeOrder } = useCart();
+  const { state, inc, dec, remove, clear, subtotal, count, placeOrder, resetMode } =
+    useCart();
   const notify = useToast();
-  const bill = billFor(subtotal, gstPercent);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+  const bill = billFor(subtotal, gstPercent, state.offer?.discount ?? 0);
+  /* The address was taken in the opening popup, so the cart only has to show
+     it back and let them fix it. */
+  const forDelivery = state.mode === "delivery";
+  const belowMinimum =
+    forDelivery && restaurant.deliveryMin > 0 && bill.subtotal < restaurant.deliveryMin;
 
   if (count === 0) {
     return (
@@ -39,10 +56,21 @@ export function OrderPanel({
   }
 
   function submit() {
-    const id = placeOrder();
-    if (!id) return;
-    notify(`Order ${id} sent to the kitchen`, "good");
-    onPlaced?.();
+    setError("");
+    startTransition(async () => {
+      const result = await placeOrder();
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      notify(
+        forDelivery
+          ? `Order ${result.code} placed — ${restaurant.name} will call you`
+          : `Order ${result.code} sent to the kitchen`,
+        "good",
+      );
+      onPlaced?.();
+    });
   }
 
   return (
@@ -116,11 +144,19 @@ export function OrderPanel({
         ))}
       </ul>
 
+      <OfferField slug={slug} subtotal={subtotal} />
+
       <dl className="flex flex-col gap-1.5 border-t border-dashed border-line pt-4 text-sm">
         <div className="flex justify-between">
           <dt className="text-ink-2">Subtotal</dt>
           <dd className="num text-ink">{money(bill.subtotal)}</dd>
         </div>
+        {bill.discount > 0 ? (
+          <div className="flex justify-between">
+            <dt className="text-veg">{state.offer?.code}</dt>
+            <dd className="num text-veg">−{money(bill.discount)}</dd>
+          </div>
+        ) : null}
         <div className="flex justify-between">
           <dt className="text-ink-2">
             GST <span className="num">{gstPercent}%</span>
@@ -133,12 +169,56 @@ export function OrderPanel({
         </div>
       </dl>
 
+      {forDelivery ? (
+        <div className="flex flex-col gap-1.5 border-t border-dashed border-line pt-4">
+          <p className="flex items-baseline gap-2 text-sm font-semibold text-ink">
+            Delivering to
+            <button
+              type="button"
+              onClick={resetMode}
+              className="ml-auto text-xs font-medium text-ink-3 underline underline-offset-2 hover:text-ink"
+            >
+              Change
+            </button>
+          </p>
+          <p className="text-sm text-ink">{state.address?.name}</p>
+          <p className="num text-xs text-ink-2">{state.address?.phone}</p>
+          <p className="text-xs leading-relaxed text-ink-2">
+            {state.address?.address}
+          </p>
+          {state.address?.note ? (
+            <p className="text-xs text-ink-3">{state.address.note}</p>
+          ) : null}
+          <p className="mt-1 text-[0.6875rem] leading-relaxed text-ink-3">
+            {restaurant.name} delivers this order themselves and will call you
+            on this number to confirm.
+          </p>
+        </div>
+      ) : (
+        <GuestCount />
+      )}
+
+      {error ? (
+        <p role="alert" className="text-xs text-nonveg">
+          {error}
+        </p>
+      ) : null}
+
       <button
         type="button"
         onClick={submit}
-        className="flex w-full items-center justify-between rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:scale-[0.99]"
+        disabled={pending || belowMinimum}
+        className="flex w-full items-center justify-between rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-accent-ink transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
       >
-        <span>Send to kitchen</span>
+        <span>
+          {pending
+            ? "Sending…"
+            : belowMinimum
+              ? `Minimum ₹${restaurant.deliveryMin}`
+              : forDelivery
+                ? "Place delivery order"
+                : "Send to kitchen"}
+        </span>
         <span className="num">
           {count} {count === 1 ? "item" : "items"}
         </span>
@@ -146,7 +226,9 @@ export function OrderPanel({
 
       <div className="flex items-center justify-between gap-3">
         <p className="num text-xs text-ink-3">
-          Table {tableNumber} · pay at the counter
+          {forDelivery
+            ? "Pay the rider on delivery"
+            : `Table ${tableNumber} · ${state.guests} guests · pay at the counter`}
         </p>
         <button
           type="button"

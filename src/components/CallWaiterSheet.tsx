@@ -73,10 +73,14 @@ export function CallWaiterSheet({
   open,
   onClose,
   tableNumber,
+  slug,
+  token,
 }: {
   open: boolean;
   onClose: () => void;
   tableNumber: string;
+  slug: string;
+  token: string;
 }) {
   const { callWaiter, clearWaiter, state } = useCart();
   const notify = useToast();
@@ -89,9 +93,25 @@ export function CallWaiterSheet({
   }, [secondsLeft, state.waiterCalledAt, clearWaiter]);
 
   function request(reason: WaiterRequest, label: string) {
+    /* Optimistic: the guest sees it acknowledged immediately, and the call is
+       written behind that. A failed write is retried by tapping again. */
     callWaiter(reason);
     notify(`A server is on the way — ${label.toLowerCase()}`, "good");
     onClose();
+
+    void fetch("/api/call", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug,
+        token,
+        reason,
+        sessionId: state.sessionId,
+      }),
+      keepalive: true,
+    }).catch(() => {
+      /* Offline for a moment — they can tap again after the cooldown. */
+    });
   }
 
   return (
@@ -106,14 +126,9 @@ export function CallWaiterSheet({
     >
       {onCooldown ? (
         <div className="flex flex-col items-center gap-2.5 py-8 text-center">
-          <span
-            aria-hidden="true"
-            className="grid size-10 place-items-center rounded-full border border-veg/30 text-veg"
-          >
-            <svg viewBox="0 0 20 20" className="size-4">
-              <path d="M5 10.4 8.4 14 15 6.8" {...stroke} strokeWidth={1.7} />
-            </svg>
-          </span>
+          <svg viewBox="0 0 20 20" className="size-7 text-veg" aria-hidden="true">
+            <path d="M5 10.4 8.4 14 15 6.8" {...stroke} strokeWidth={1.6} />
+          </svg>
           <p className="text-[0.8125rem] font-medium text-ink">
             A server is on the way
           </p>
@@ -132,14 +147,13 @@ export function CallWaiterSheet({
                 onClick={() => request(reason.id, reason.label)}
                 className="group flex w-full items-center gap-3 rounded-lg px-1 py-3 text-left transition hover:bg-surface-2"
               >
-                <span
+                <svg
+                  viewBox="0 0 20 20"
                   aria-hidden="true"
-                  className="grid size-9 shrink-0 place-items-center rounded-full border border-line text-ink-2 transition group-hover:border-accent/40 group-hover:text-accent"
+                  className="size-[1.125rem] shrink-0 text-ink-3 transition group-hover:text-accent"
                 >
-                  <svg viewBox="0 0 20 20" className="size-4">
-                    {ICONS[reason.id]}
-                  </svg>
-                </span>
+                  {ICONS[reason.id]}
+                </svg>
                 <span className="flex-1 text-[0.8125rem] font-medium text-ink">
                   {reason.label}
                 </span>

@@ -7,20 +7,25 @@ import {
   useEffect,
   useMemo,
   useReducer,
-  useRef,
   type ReactNode,
 } from "react";
-import type { CartLine, MenuItem, OrderStage, WaiterRequest } from "./types";
+import { placeOrder as placeOrderOnServer } from "./order-actions";
+import type {
+  CartLine,
+  CustomerDetails,
+  DeliveryAddress,
+  OrderMode,
+  MenuItem,
+  OrderStage,
+  WaiterRequest,
+} from "./types";
 
 /* How long the guest must wait before calling a waiter again. */
 export const WAITER_COOLDOWN_MS = 60_000;
 
-/* Demo-only: the kitchen advances the order on a timer instead of a socket. */
-const STAGE_AFTER: Partial<Record<OrderStage, { next: OrderStage; ms: number }>> = {
-  placed: { next: "accepted", ms: 3000 },
-  accepted: { next: "preparing", ms: 4000 },
-  preparing: { next: "ready", ms: 8000 },
-};
+/* MySQL has no realtime, so the phone asks. Four seconds reads as instant
+   to someone sitting at a table, and costs one tiny query per guest. */
+const POLL_MS = 4000;
 
 type State = {
   hydrated: boolean;
@@ -30,6 +35,22 @@ type State = {
   placedLines: CartLine[];
   waiterCalledAt: number | null;
   waiterReason: WaiterRequest | null;
+  /** Row id of the live order, used to poll its stage. */
+  orderDbId: string | null;
+  /** Offer the guest applied, re-checked server-side when sending. */
+  offer: { code: string; label: string; discount: number } | null;
+  /** Anonymous id for this phone, so it can see its own order after a refresh. */
+  sessionId: string;
+  /** How many people are eating — drives portioning and per-head reporting. */
+  guests: number;
+  /** Optional: the guest may leave a name/phone after ordering, never before. */
+  customer: CustomerDetails | null;
+  /** Null until the opening popup is answered. */
+  mode: OrderMode | null;
+  /** Which table they picked, when dining in from a shared QR. */
+  tableToken: string | null;
+  /** Set for delivery only, before they start browsing. */
+  address: DeliveryAddress | null;
 };
 
 type Action =
@@ -40,11 +61,22 @@ type Action =
   | { type: "remove"; lineId: string }
   | { type: "note"; lineId: string; note: string }
   | { type: "clear" }
-  | { type: "place"; orderId: string }
+  | { type: "place"; orderId: string; orderDbId: string }
+  | { type: "session"; sessionId: string }
+  | { type: "offer"; offer: { code: string; label: string; discount: number } | null }
   | { type: "stage"; stage: OrderStage }
   | { type: "resetOrder" }
   | { type: "callWaiter"; reason: WaiterRequest; at: number }
-  | { type: "clearWaiter" };
+  | { type: "clearWaiter" }
+  | { type: "guests"; count: number }
+  | { type: "customer"; details: CustomerDetails | null }
+  | {
+      type: "mode";
+      mode: OrderMode;
+      tableToken: string | null;
+      address: DeliveryAddress | null;
+    }
+  | { type: "resetMode" };
 
 const EMPTY: State = {
   hydrated: false,
@@ -54,6 +86,14 @@ const EMPTY: State = {
   placedLines: [],
   waiterCalledAt: null,
   waiterReason: null,
+  orderDbId: null,
+  offer: null,
+  sessionId: "",
+  guests: 2,
+  customer: null,
+  mode: null,
+  tableToken: null,
+  address: null,
 };
 
 /** Same dish with different options must stay a separate line. */
@@ -72,6 +112,7 @@ function buildLine(item: MenuItem, optionIds: string[]): CartLine {
     diet: item.diet,
     unitPrice: item.price + chosen.reduce((sum, c) => sum + c.priceDelta, 0),
     qty: 1,
+    optionIds: chosen.map((c) => c.id),
     optionLabels: chosen.map((c) => c.label),
   };
 }
@@ -124,29 +165,66 @@ function reducer(state: State, action: Action): State {
       };
 
     case "clear":
-      return { ...state, lines: [] };
+      return { ...state, lines: [], offer: null };
 
     case "place":
       if (state.lines.length === 0) return state;
       return {
         ...state,
-        stage: "placed",
+        /* Dine-in guests watch the ticket move. A delivery guest is not in
+           the room, so there is no stage to follow and nothing to poll —
+           the restaurant rings them instead. */
+        stage: state.mode === "delivery" ? null : "placed",
         orderId: action.orderId,
+        orderDbId: state.mode === "delivery" ? null : action.orderDbId,
         placedLines: state.lines,
         lines: [],
+        offer: null,
       };
+
+    case "session":
+      return { ...state, sessionId: action.sessionId };
+
+    case "offer":
+      return { ...state, offer: action.offer };
 
     case "stage":
       return state.stage ? { ...state, stage: action.stage } : state;
 
     case "resetOrder":
-      return { ...state, stage: null, orderId: null, placedLines: [] };
+      return {
+        ...state,
+        stage: null,
+        orderId: null,
+        orderDbId: null,
+        placedLines: [],
+        customer: null,
+      };
 
     case "callWaiter":
       return { ...state, waiterCalledAt: action.at, waiterReason: action.reason };
 
     case "clearWaiter":
       return { ...state, waiterCalledAt: null, waiterReason: null };
+
+    case "guests":
+      return { ...state, guests: Math.min(Math.max(action.count, 1), 30) };
+
+    case "customer":
+      return { ...state, customer: action.details };
+
+    case "mode":
+      return {
+        ...state,
+        mode: action.mode,
+        tableToken: action.tableToken,
+        address: action.address,
+      };
+
+    /* Switching between dine-in and delivery re-opens the popup. The basket
+       survives — they may have picked dishes before changing their mind. */
+    case "resetMode":
+      return { ...state, mode: null, address: null };
 
     default:
       return state;
@@ -161,10 +239,22 @@ type CartApi = {
   remove: (lineId: string) => void;
   setNote: (lineId: string, note: string) => void;
   clear: () => void;
-  placeOrder: () => string | null;
+  placeOrder: () => Promise<
+    { ok: true; code: string } | { ok: false; message: string }
+  >;
   resetOrder: () => void;
   callWaiter: (reason: WaiterRequest) => void;
   clearWaiter: () => void;
+  applyOffer: (offer: { code: string; label: string; discount: number }) => void;
+  clearOffer: () => void;
+  setGuests: (count: number) => void;
+  setCustomer: (details: CustomerDetails | null) => void;
+  setMode: (
+    mode: OrderMode,
+    tableToken: string | null,
+    address: DeliveryAddress | null,
+  ) => void;
+  resetMode: () => void;
   qtyOf: (itemId: string) => number;
   count: number;
   subtotal: number;
@@ -174,13 +264,17 @@ const CartContext = createContext<CartApi | null>(null);
 
 export function CartProvider({
   storageKey,
+  slug,
+  token,
   children,
 }: {
   storageKey: string;
+  slug: string;
+  /** Null when the guest is ordering for delivery instead of at a table. */
+  token: string | null;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, EMPTY);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* Read persisted state after mount so server and client HTML match. */
   useEffect(() => {
@@ -206,6 +300,14 @@ export function CartProvider({
           placedLines: state.placedLines,
           waiterCalledAt: state.waiterCalledAt,
           waiterReason: state.waiterReason,
+          orderDbId: state.orderDbId,
+          offer: state.offer,
+          sessionId: state.sessionId,
+          guests: state.guests,
+          customer: state.customer,
+          mode: state.mode,
+          tableToken: state.tableToken,
+          address: state.address,
         }),
       );
     } catch {
@@ -213,20 +315,40 @@ export function CartProvider({
     }
   }, [state, storageKey]);
 
-  /* Walk the order through the kitchen stages. */
+  /* Give this phone a stable id the first time it opens the menu. */
   useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    if (!state.stage) return;
-    const step = STAGE_AFTER[state.stage];
-    if (!step) return;
-    timer.current = setTimeout(
-      () => dispatch({ type: "stage", stage: step.next }),
-      step.ms,
-    );
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
+    if (!state.hydrated || state.sessionId) return;
+    const id =
+      globalThis.crypto?.randomUUID?.() ??
+      `s-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    dispatch({ type: "session", sessionId: id });
+  }, [state.hydrated, state.sessionId]);
+
+  /* Ask the kitchen where the order has got to, until it is served. */
+  useEffect(() => {
+    const id = state.orderDbId;
+    if (!id || !state.stage || state.stage === "served") return;
+
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const response = await fetch(`/api/order/${id}`, { cache: "no-store" });
+        if (!response.ok || cancelled) return;
+        const body = (await response.json()) as { stage?: OrderStage };
+        if (body.stage && body.stage !== state.stage) {
+          dispatch({ type: "stage", stage: body.stage });
+        }
+      } catch {
+        /* Offline for a moment — the next tick picks it up. */
+      }
     };
-  }, [state.stage]);
+
+    const timer = window.setInterval(tick, POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [state.orderDbId, state.stage]);
 
   const add = useCallback(
     (item: MenuItem, optionIds: string[] = []) =>
@@ -246,14 +368,77 @@ export function CartProvider({
   const clear = useCallback(() => dispatch({ type: "clear" }), []);
   const resetOrder = useCallback(() => dispatch({ type: "resetOrder" }), []);
   const clearWaiter = useCallback(() => dispatch({ type: "clearWaiter" }), []);
+  const applyOffer = useCallback(
+    (offer: { code: string; label: string; discount: number }) =>
+      dispatch({ type: "offer", offer }),
+    [],
+  );
+  const clearOffer = useCallback(() => dispatch({ type: "offer", offer: null }), []);
+  const setGuests = useCallback(
+    (count: number) => dispatch({ type: "guests", count }),
+    [],
+  );
+  const setCustomer = useCallback(
+    (details: CustomerDetails | null) => dispatch({ type: "customer", details }),
+    [],
+  );
+  const setMode = useCallback(
+    (
+      mode: OrderMode,
+      tableToken: string | null,
+      address: DeliveryAddress | null,
+    ) => dispatch({ type: "mode", mode, tableToken, address }),
+    [],
+  );
+  const resetMode = useCallback(() => dispatch({ type: "resetMode" }), []);
 
-  const lineCount = state.lines.length;
-  const placeOrder = useCallback(() => {
-    if (lineCount === 0) return null;
-    const orderId = `KT-${String(Math.floor(1000 + Math.random() * 9000))}`;
-    dispatch({ type: "place", orderId });
-    return orderId;
-  }, [lineCount]);
+  const linesRef = state.lines;
+  const guestsRef = state.guests;
+  const sessionRef = state.sessionId;
+  const offerRef = state.offer;
+  const modeRef = state.mode;
+  const addressRef = state.address;
+  const chosenTable = state.tableToken;
+
+  const placeOrder = useCallback(async () => {
+    if (linesRef.length === 0) {
+      return { ok: false as const, message: "Your order is empty." };
+    }
+    if (!modeRef) {
+      return { ok: false as const, message: "Tell us how you're ordering first." };
+    }
+
+    const result = await placeOrderOnServer({
+      slug,
+      /* The printed table code wins; otherwise the table they picked in the
+         popup. Delivery sends neither. */
+      token: modeRef === "delivery" ? null : (token ?? chosenTable),
+      sessionId: sessionRef,
+      guests: guestsRef,
+      lines: linesRef.map((line) => ({
+        itemId: line.itemId,
+        qty: line.qty,
+        optionIds: line.optionIds,
+      })),
+      offerCode: offerRef?.code,
+      delivery: modeRef === "delivery" && addressRef ? addressRef : undefined,
+    });
+
+    if (!result.ok) return result;
+
+    dispatch({ type: "place", orderId: result.code, orderDbId: result.orderId });
+    return { ok: true as const, code: result.code };
+  }, [
+    linesRef,
+    guestsRef,
+    sessionRef,
+    offerRef,
+    modeRef,
+    addressRef,
+    chosenTable,
+    slug,
+    token,
+  ]);
 
   const callWaiter = useCallback(
     (reason: WaiterRequest) =>
@@ -276,6 +461,12 @@ export function CartProvider({
       resetOrder,
       callWaiter,
       clearWaiter,
+      applyOffer,
+      clearOffer,
+      setGuests,
+      setCustomer,
+      setMode,
+      resetMode,
       count,
       subtotal,
       qtyOf: (itemId: string) =>
@@ -295,6 +486,12 @@ export function CartProvider({
     resetOrder,
     callWaiter,
     clearWaiter,
+    applyOffer,
+    clearOffer,
+    setGuests,
+    setCustomer,
+    setMode,
+    resetMode,
   ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -306,7 +503,9 @@ export function useCart() {
   return ctx;
 }
 
-export function billFor(subtotal: number, gstPercent: number) {
-  const gst = Math.round((subtotal * gstPercent) / 100);
-  return { subtotal, gst, total: subtotal + gst };
+export function billFor(subtotal: number, gstPercent: number, discount = 0) {
+  /* Tax follows the discounted amount, which is how a bill actually works. */
+  const taxable = Math.max(0, subtotal - discount);
+  const gst = Math.round((taxable * gstPercent) / 100);
+  return { subtotal, discount, gst, total: taxable + gst };
 }

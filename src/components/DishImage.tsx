@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { dishImages } from "@/lib/dish-images";
 import { clsx } from "@/lib/format";
 import type { MenuItem } from "@/lib/types";
 
@@ -22,7 +21,7 @@ export function DishImage({
   /** Set on the few dishes above the fold so the LCP image isn't lazy. */
   priority?: boolean;
 }) {
-  const src = dishImages[item.id];
+  const src = item.imageUrl;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(!src);
 
@@ -30,18 +29,18 @@ export function DishImage({
     <div
       className={clsx("relative overflow-hidden rounded-xl bg-surface-2", className)}
       style={
-        failed
+        failed || !src
           ? {
               backgroundImage: `radial-gradient(120% 120% at 30% 20%, ${item.swatch[0]}, ${item.swatch[1]})`,
             }
           : undefined
       }
     >
-      {!loaded && !failed ? (
+      {!loaded && src && !failed ? (
         <div className="skeleton absolute inset-0" aria-hidden="true" />
       ) : null}
 
-      {failed ? (
+      {failed || !src ? (
         <span
           aria-hidden="true"
           className="grid size-full place-items-center text-2xl select-none"

@@ -31,6 +31,7 @@ export function Sheet({
   children,
   footer,
   size = "default",
+  dismissible = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -39,6 +40,9 @@ export function Sheet({
   children: ReactNode;
   footer?: ReactNode;
   size?: "default" | "compact";
+  /** False for a question that must be answered — no backdrop tap, no Escape,
+      no close button. Used by the opening order-mode sheet. */
+  dismissible?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
@@ -50,7 +54,7 @@ export function Sheet({
     lockScroll();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && dismissible) {
         e.stopPropagation();
         onClose();
         return;
@@ -85,7 +89,7 @@ export function Sheet({
       unlockScroll();
       restoreTo.current?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   /* Sheets only ever open from a tap, so the DOM exists by the time this runs. */
   if (!open || typeof document === "undefined") return null;
@@ -97,7 +101,8 @@ export function Sheet({
       <button
         type="button"
         aria-label="Close"
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
+        disabled={!dismissible}
         className="anim-fade absolute inset-0 cursor-default bg-black/55 backdrop-blur-[2px]"
       />
       <div
@@ -125,6 +130,7 @@ export function Sheet({
               <p className="mt-1 text-sm text-ink-2">{description}</p>
             ) : null}
           </div>
+          {dismissible ? (
           <button
             type="button"
             onClick={onClose}
@@ -140,6 +146,7 @@ export function Sheet({
               />
             </svg>
           </button>
+          ) : null}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
