@@ -41,6 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 
-# Prisma client + schema are generated from SAAS/prisma/schema.prisma
+# The Prisma client is generated at build time. The schema itself is copied
+# in from SAAS by scripts/sync-schema.mjs, and IS committed: a deploy only
+# ever receives this repo, so the copy has to travel with it.
 /src/generated
-/prisma/schema.prisma
