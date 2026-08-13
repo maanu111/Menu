@@ -38,11 +38,19 @@ function subdomainOf(host: string) {
      restaurant "127". Health checks and LAN testing both arrive this way. */
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(name)) return null;
 
-  const parts = name.split(".");
-  /* Needs at least sub.domain.tld before there is a tenant label to read. */
-  if (parts.length < 3) return null;
+  /* Only the configured domain carries tenants. Without this, any host with
+     three parts looks like one — a preview URL such as
+     menu-eight-lime.vercel.app would be read as the restaurant
+     "menu-eight-lime" and every page would 404. When no domain is configured
+     the app is reached by path (/r/<slug>) and there are no subdomains at
+     all, which is exactly how a demo deployment runs. */
+  const apex = process.env.NEXT_PUBLIC_GUEST_HOST?.trim().toLowerCase();
+  if (!apex) return null;
+  if (!name.endsWith(`.${apex}`)) return null;
 
-  const label = parts[0];
+  const label = name.slice(0, -(apex.length + 1));
+  /* Only a single label in front of the domain is a tenant. */
+  if (!label || label.includes(".")) return null;
   if (RESERVED.has(label)) return null;
   return label;
 }
