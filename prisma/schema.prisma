@@ -415,6 +415,10 @@ model Order {
   guests        Int           @default(1)
   customerName  String?
   customerPhone String?
+  /// True when the guest built this from a past order rather than the menu,
+  /// which is worth knowing: a regular ordering the usual is a different
+  /// customer from someone deciding for the first time.
+  isRepeat      Boolean       @default(false)
   occasion      String?
   note          String?       @db.Text
   subtotalPaise Int           @default(0)

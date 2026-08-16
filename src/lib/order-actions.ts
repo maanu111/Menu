@@ -18,6 +18,8 @@ export type PlaceOrderInput = {
   offerCode?: string;
   /** Present only for collection, and then both parts are required. */
   pickup?: PickupDetails;
+  /** The guest built this from a past order rather than from the menu. */
+  isRepeat?: boolean;
 };
 
 /* Indian mobile numbers, however the guest types them. */
@@ -232,6 +234,7 @@ export async function placeOrder(input: PlaceOrderInput) {
       guests: forPickup ? 1 : Math.max(1, Math.min(input.guests, 30)),
       customerName: pickup?.name ?? null,
       customerPhone: pickup?.phone ?? null,
+      isRepeat: Boolean(input.isRepeat),
       subtotalPaise: subtotal,
       discountPaise: discount,
       taxPaise: tax,

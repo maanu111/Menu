@@ -68,6 +68,8 @@ type State = {
   pickup: PickupDetails | null;
   /** Every order this phone has sent, newest first. */
   history: PastOrder[];
+  /** Set when anything in the basket came from a past order. */
+  fromRepeat: boolean;
 };
 
 type Action =
@@ -113,6 +115,7 @@ const EMPTY: State = {
   tableToken: null,
   pickup: null,
   history: [],
+  fromRepeat: false,
 };
 
 /** Same dish with different options must stay a separate line. */
@@ -210,6 +213,7 @@ function reducer(state: State, action: Action): State {
         placedLines: state.lines,
         lines: [],
         offer: null,
+        fromRepeat: false,
       };
     }
 
@@ -222,7 +226,7 @@ function reducer(state: State, action: Action): State {
         if (found) found.qty += line.qty;
         else merged.push({ ...line });
       }
-      return { ...state, lines: merged };
+      return { ...state, lines: merged, fromRepeat: true };
     }
 
     case "session":
@@ -353,6 +357,7 @@ export function CartProvider({
           tableToken: state.tableToken,
           pickup: state.pickup,
           history: state.history,
+          fromRepeat: state.fromRepeat,
         }),
       );
     } catch {
@@ -447,6 +452,7 @@ export function CartProvider({
   const offerRef = state.offer;
   const modeRef = state.mode;
   const pickupRef = state.pickup;
+  const repeatRef = state.fromRepeat;
   const chosenTable = state.tableToken;
 
   const placeOrder = useCallback(async () => {
@@ -471,6 +477,7 @@ export function CartProvider({
       })),
       offerCode: offerRef?.code,
       pickup: modeRef === "pickup" && pickupRef ? pickupRef : undefined,
+      isRepeat: repeatRef,
     });
 
     if (!result.ok) return result;
@@ -489,6 +496,7 @@ export function CartProvider({
     offerRef,
     modeRef,
     pickupRef,
+    repeatRef,
     chosenTable,
     slug,
     token,
