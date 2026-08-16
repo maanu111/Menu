@@ -30,6 +30,12 @@ const ICONS: Record<WaiterRequest, ReactNode> = {
       <path d="M3.6 6.2 10 10.4l6.4-4.2" {...stroke} />
     </>
   ),
+  checkout: (
+    <svg viewBox="0 0 20 20" className="size-5" fill="none" aria-hidden="true">
+      <path d="M4.5 3.5h11v13l-2-1.4-1.8 1.4-1.7-1.4-1.7 1.4-1.8-1.4-2 1.4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M7.5 7.5h5M7.5 10.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
   bill: (
     <>
       <path d="M5.2 3h9.6v14l-1.9-1.4-1.6 1.4L9.6 15.6 8 17l-1.6-1.4L4.6 17V3h.6Z" {...stroke} />

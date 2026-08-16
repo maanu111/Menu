@@ -29,13 +29,16 @@ export async function generateMetadata({
 
 export default async function TableMenuPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; token: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { slug, token } = await params;
+  const { lang } = await searchParams;
 
   /* A printed QR must resolve to a real, open table or show nothing at all. */
-  const menu = await getTableMenu(slug, token);
+  const menu = await getTableMenu(slug, token, lang ?? "");
   if (!menu) notFound();
 
   const url = tableUrl(menu.restaurant.slug, menu.table.token);

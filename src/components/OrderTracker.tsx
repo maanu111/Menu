@@ -3,6 +3,7 @@
 import { AddOnsRail } from "./AddOnsRail";
 import { DetailsCard } from "./DetailsCard";
 import { useToast } from "./Toaster";
+import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { clsx, money } from "@/lib/format";
 import type { MenuItem, OrderStage } from "@/lib/types";
@@ -18,12 +19,18 @@ const STEPS: { id: OrderStage; label: string; hint: string }[] = [
 export function OrderTracker({
   items,
   onDone,
+  slug,
+  token,
 }: {
   items: MenuItem[];
   onDone?: () => void;
+  slug: string;
+  /** The table this order belongs to. Null for a collection order. */
+  token: string | null;
 }) {
   const { state, resetOrder, reorder } = useCart();
   const notify = useToast();
+  const [checkingOut, setCheckingOut] = useState(false);
   if (!state.stage) return null;
 
   const current = STEPS.findIndex((s) => s.id === state.stage);
@@ -146,6 +153,33 @@ export function OrderTracker({
           {state.guests} {state.guests === 1 ? "guest" : "guests"} · pay at the
           counter
         </p>
+
+        {/* Tells the counter this table is done and wants to settle up. It
+            rides the same live channel the staff calls already use, so it
+            lands on their screen within a couple of seconds. */}
+        {token ? (
+          <button
+            type="button"
+            disabled={checkingOut}
+            onClick={() => {
+              setCheckingOut(true);
+              notify("The counter has been told — someone is on the way", "good");
+              void fetch("/api/call", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  slug,
+                  token,
+                  reason: "checkout",
+                  sessionId: state.sessionId,
+                }),
+              }).catch(() => setCheckingOut(false));
+            }}
+            className="mt-3 h-12 w-full rounded-full bg-accent text-sm font-semibold text-accent-ink transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
+          >
+            {checkingOut ? "The counter knows" : "Checkout"}
+          </button>
+        ) : null}
 
         {/* Suggestions and details come after the commitment, never before. */}
         <div className="mt-4 flex flex-col gap-3 border-t border-dashed border-line pt-4">

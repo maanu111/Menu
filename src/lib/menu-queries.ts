@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { db } from "./db";
+import { readLanguages } from "./languages";
 import type {
   Banner,
   Category,
@@ -61,6 +62,8 @@ export type TableMenu = RestaurantMenu & { table: TableInfo };
 const loadMenu = cache(async function loadMenu(
   slug: string,
   token: string | null,
+  /** Empty means English, which is what the owner typed. */
+  lang: string = "",
 ): Promise<TableMenu | RestaurantMenu | null> {
   const row = await db.restaurant.findUnique({
     where: { slug },
@@ -92,9 +95,13 @@ const loadMenu = cache(async function loadMenu(
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
         include: {
+          /* Only the language asked for, so a menu in ten languages is not
+             ten times the payload. */
+          translations: lang ? { where: { lang } } : false,
           items: {
             orderBy: { sortOrder: "asc" },
             include: {
+              translations: lang ? { where: { lang } } : false,
               optionGroups: {
                 orderBy: { sortOrder: "asc" },
                 include: { choices: { orderBy: { sortOrder: "asc" } } },
@@ -120,8 +127,11 @@ const loadMenu = cache(async function loadMenu(
       const seed = hash(item.id);
       return {
         id: item.id,
-        name: item.name,
-        description: item.description ?? "",
+        /* The translation when there is one, the English the owner typed when
+           there isn't — a half-translated menu still reads. */
+        name: item.translations?.[0]?.name ?? item.name,
+        description:
+          item.translations?.[0]?.description ?? item.description ?? "",
         price: item.pricePaise / 100,
         diet: DIET[item.diet] ?? "veg",
         categoryId: category.id,
@@ -160,6 +170,7 @@ const loadMenu = cache(async function loadMenu(
       serviceHours: row.serviceHours ?? "",
       isOpen: row.isOpen,
       currency: row.currency,
+      languages: readLanguages(row.menuLanguages),
       acceptsPickup: row.acceptsPickup,
       pickupNote: row.pickupNote ?? undefined,
       pickupMin: row.pickupMinPaise / 100,
@@ -176,7 +187,7 @@ const loadMenu = cache(async function loadMenu(
       : {}),
     categories: row.categories
       .filter((c) => c.items.length > 0)
-      .map((c) => ({ id: c.id, name: c.name })),
+      .map((c) => ({ id: c.id, name: c.translations?.[0]?.name ?? c.name })),
     items,
     banners: row.banners,
     tables: row.tables.map((t) => ({
@@ -188,8 +199,8 @@ const loadMenu = cache(async function loadMenu(
 });
 
 /** The menu behind a printed table QR. */
-export async function getTableMenu(slug: string, token: string) {
-  return (await loadMenu(slug, token)) as TableMenu | null;
+export async function getTableMenu(slug: string, token: string, lang = "") {
+  return (await loadMenu(slug, token, lang)) as TableMenu | null;
 }
 
 /**
@@ -197,8 +208,8 @@ export async function getTableMenu(slug: string, token: string) {
  * and canteens as well as by the door. No table is implied; the opening popup
  * asks whether the guest is eating in or collecting.
  */
-export async function getRestaurantMenu(slug: string) {
-  return (await loadMenu(slug, null)) as RestaurantMenu | null;
+export async function getRestaurantMenu(slug: string, lang = "") {
+  return (await loadMenu(slug, null, lang)) as RestaurantMenu | null;
 }
 
 /** One row per QR open — this is what the owner's scan reports count. */

@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-const REASONS = new Set(["water", "cutlery", "napkins", "bill", "assistance"]);
+const REASONS = new Set([
+  "water",
+  "cutlery",
+  "napkins",
+  "bill",
+  "checkout",
+  "assistance",
+]);
 
 /**
  * One open call per table at a time — a guest tapping twice shouldn't put two

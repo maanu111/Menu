@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Navbar } from "./Navbar";
 import { MenuBrowser } from "./MenuBrowser";
 import { BannerRail } from "./BannerRail";
+import { LanguagePicker } from "./LanguagePicker";
 import { OrderModeSheet } from "./OrderModeSheet";
 import { OrderHistorySheet } from "./OrderHistorySheet";
 import { OrderPanel } from "./OrderPanel";
@@ -87,6 +88,8 @@ export function MenuShell({
             {restaurant.menuNote}
           </p>
         ) : null}
+
+        <LanguagePicker languages={restaurant.languages} />
 
         <BannerRail banners={banners} />
 
@@ -241,7 +244,12 @@ export function MenuShell({
           ) : null
         }
       >
-        <OrderTracker items={items} onDone={() => setTrackerOpen(false)} />
+        <OrderTracker
+          items={items}
+          onDone={() => setTrackerOpen(false)}
+          slug={restaurant.slug}
+          token={seatedAt?.token ?? null}
+        />
       </Sheet>
 
       <OrderHistorySheet

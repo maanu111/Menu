@@ -26,16 +26,19 @@ export async function generateMetadata({
  * What the restaurant's own code opens. That code goes up on tables, but also
  * on office and canteen noticeboards, so nothing here may assume the guest is
  * in the building — the menu loads and the opening popup asks whether they
- * are eating in or want it delivered.
+ * are eating in or collecting.
  */
 export default async function RestaurantMenuPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { slug } = await params;
+  const { lang } = await searchParams;
 
-  const menu = await getRestaurantMenu(slug);
+  const menu = await getRestaurantMenu(slug, lang ?? "");
   if (!menu) notFound();
 
   return (

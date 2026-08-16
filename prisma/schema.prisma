@@ -138,6 +138,9 @@ model Restaurant {
   pickupNote    String? @db.VarChar(300)
   /// Smallest order the kitchen will make up for collection, in paise.
   pickupMinPaise Int    @default(0)
+  /// Languages the guest menu offers, as BCP-47 codes, e.g. ["hi","kn"].
+  /// English is the original and is always available, so it is not listed.
+  menuLanguages  Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
