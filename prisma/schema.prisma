@@ -131,15 +131,13 @@ model Restaurant {
   currency     String   @default("INR")
   serviceHours String?
   isOpen       Boolean  @default(true)
-  /// Whether guests may order for delivery as well as at a table. The
-  /// restaurant delivers its own orders — the platform never handles them.
-  acceptsDelivery Boolean @default(false)
-  /// The restaurant's own delivery terms: area, charge, rough timing. Shown
-  /// to the guest before they commit, because these are the restaurant's
-  /// promises to keep, not the platform's.
-  deliveryNote    String? @db.VarChar(300)
-  /// Smallest order the kitchen will send out, in paise. 0 means no minimum.
-  deliveryMinPaise Int    @default(0)
+  /// Whether guests may order to collect as well as at a table.
+  acceptsPickup Boolean @default(false)
+  /// When it will be ready and where to collect it — the restaurant's own
+  /// words, shown before the guest commits.
+  pickupNote    String? @db.VarChar(300)
+  /// Smallest order the kitchen will make up for collection, in paise.
+  pickupMinPaise Int    @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -150,6 +148,7 @@ model Restaurant {
   orders       Order[]
   offers       Offer[]
   banners      Banner[]
+  expenses     Expense[]
   inventory    InventoryItem[]
   scans        QrScan[]
   subscription Subscription?
@@ -184,6 +183,7 @@ model User {
   ticketsOpened   SupportTicket[]  @relation("TicketOpenedBy")
   ticketMessages  SupportMessage[] @relation("MessageAuthor")
   callsAttended   WaiterCall[]     @relation("CallAttendedBy")
+  expensesLogged  Expense[]        @relation("ExpenseRecordedBy")
 
   @@index([platformRole])
 }
@@ -226,6 +226,7 @@ model Category {
 
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   items        MenuItem[]
+  translations CategoryTranslation[]
 
   @@unique([restaurantId, name])
   @@index([restaurantId, sortOrder])
@@ -264,10 +265,48 @@ model MenuItem {
   category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   optionGroups OptionGroup[]
   orderItems   OrderItem[]
+  translations MenuItemTranslation[]
 
   @@unique([restaurantId, code])
   @@index([restaurantId, categoryId])
   @@index([restaurantId, isAvailable])
+}
+
+/// A dish's name and description in one other language.
+///
+/// Translated once and stored, rather than rewritten in the browser: a script
+/// that rewrites the page fights React for the same DOM and the guest gets
+/// flicker, duplicated lines, or a crash halfway through ordering.
+model MenuItemTranslation {
+  id         String @id @default(cuid())
+  menuItemId String
+  /// BCP-47, e.g. "hi", "kn", "ta".
+  lang       String @db.VarChar(12)
+  name       String
+  description String? @db.Text
+  /// True when a person wrote or corrected it, so a re-translate leaves it be.
+  isManual   Boolean @default(false)
+  updatedAt  DateTime @updatedAt
+
+  item       MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, lang])
+  @@index([lang])
+}
+
+/// The same, for a menu section heading.
+model CategoryTranslation {
+  id         String @id @default(cuid())
+  categoryId String
+  lang       String @db.VarChar(12)
+  name       String
+  isManual   Boolean @default(false)
+  updatedAt  DateTime @updatedAt
+
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, lang])
+  @@index([lang])
 }
 
 model OptionGroup {
@@ -340,8 +379,8 @@ enum OrderChannel {
   QR
   POS
   PHONE
-  /// Ordered from the menu for delivery. The restaurant delivers it itself.
-  DELIVERY
+  /// Ordered from the menu to collect at the counter.
+  PICKUP
 }
 
 enum OrderStage {
@@ -373,10 +412,6 @@ model Order {
   guests        Int           @default(1)
   customerName  String?
   customerPhone String?
-  /// Only set on delivery orders — where the restaurant's own rider is going.
-  customerAddress String?     @db.VarChar(300)
-  /// A landmark or flat number the rider will actually need.
-  addressNote     String?     @db.VarChar(160)
   occasion      String?
   note          String?       @db.Text
   subtotalPaise Int           @default(0)
@@ -424,6 +459,29 @@ model OrderItem {
 enum OfferKind {
   PERCENT
   FLAT
+}
+
+/// Money going out: rent, salaries, the vegetable bill. Paired with the
+/// orders already recorded, this is what turns revenue into actual profit.
+model Expense {
+  id           String   @id @default(cuid())
+  restaurantId String
+  /// One of the keys in lib/expenses.ts. Stored as text so the list can grow
+  /// without a migration.
+  category     String   @db.VarChar(40)
+  amountPaise  Int
+  note         String?  @db.VarChar(200)
+  /// The day the money went out, which is rarely the day it was typed in.
+  spentAt      DateTime
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  recordedBy   User?      @relation("ExpenseRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([restaurantId, spentAt])
+  @@index([restaurantId, category])
 }
 
 /// A slide at the top of the guest menu — a poster for an offer, a new dish,

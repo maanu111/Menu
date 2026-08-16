@@ -160,9 +160,9 @@ const loadMenu = cache(async function loadMenu(
       serviceHours: row.serviceHours ?? "",
       isOpen: row.isOpen,
       currency: row.currency,
-      acceptsDelivery: row.acceptsDelivery,
-      deliveryNote: row.deliveryNote ?? undefined,
-      deliveryMin: row.deliveryMinPaise / 100,
+      acceptsPickup: row.acceptsPickup,
+      pickupNote: row.pickupNote ?? undefined,
+      pickupMin: row.pickupMinPaise / 100,
     },
     ...(table
       ? {
@@ -195,7 +195,7 @@ export async function getTableMenu(slug: string, token: string) {
 /**
  * The menu behind the restaurant's own code — the one that goes up in offices
  * and canteens as well as by the door. No table is implied; the opening popup
- * asks whether the guest is eating in or wants it delivered.
+ * asks whether the guest is eating in or collecting.
  */
 export async function getRestaurantMenu(slug: string) {
   return (await loadMenu(slug, null)) as RestaurantMenu | null;

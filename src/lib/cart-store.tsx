@@ -13,8 +13,8 @@ import { placeOrder as placeOrderOnServer } from "./order-actions";
 import type {
   CartLine,
   CustomerDetails,
-  DeliveryAddress,
   OrderMode,
+  PickupDetails,
   MenuItem,
   OrderStage,
   WaiterRequest,
@@ -26,6 +26,21 @@ export const WAITER_COOLDOWN_MS = 60_000;
 /* MySQL has no realtime, so the phone asks. Four seconds reads as instant
    to someone sitting at a table, and costs one tiny query per guest. */
 const POLL_MS = 4000;
+
+/**
+ * An order this phone has already sent. Kept on the device rather than behind
+ * a login: someone ordering lunch will not make an account, but they will
+ * happily tap "same again" next week.
+ */
+export type PastOrder = {
+  code: string;
+  orderDbId: string;
+  placedAt: number;
+  mode: OrderMode;
+  tableNumber: string | null;
+  lines: CartLine[];
+  total: number;
+};
 
 type State = {
   hydrated: boolean;
@@ -49,8 +64,10 @@ type State = {
   mode: OrderMode | null;
   /** Which table they picked, when dining in from a shared QR. */
   tableToken: string | null;
-  /** Set for delivery only, before they start browsing. */
-  address: DeliveryAddress | null;
+  /** Set for collection only, before they start browsing. */
+  pickup: PickupDetails | null;
+  /** Every order this phone has sent, newest first. */
+  history: PastOrder[];
 };
 
 type Action =
@@ -61,7 +78,8 @@ type Action =
   | { type: "remove"; lineId: string }
   | { type: "note"; lineId: string; note: string }
   | { type: "clear" }
-  | { type: "place"; orderId: string; orderDbId: string }
+  | { type: "place"; orderId: string; orderDbId: string; tableNumber: string | null }
+  | { type: "reorder"; lines: CartLine[] }
   | { type: "session"; sessionId: string }
   | { type: "offer"; offer: { code: string; label: string; discount: number } | null }
   | { type: "stage"; stage: OrderStage }
@@ -74,7 +92,7 @@ type Action =
       type: "mode";
       mode: OrderMode;
       tableToken: string | null;
-      address: DeliveryAddress | null;
+      pickup: PickupDetails | null;
     }
   | { type: "resetMode" };
 
@@ -93,7 +111,8 @@ const EMPTY: State = {
   customer: null,
   mode: null,
   tableToken: null,
-  address: null,
+  pickup: null,
+  history: [],
 };
 
 /** Same dish with different options must stay a separate line. */
@@ -167,20 +186,44 @@ function reducer(state: State, action: Action): State {
     case "clear":
       return { ...state, lines: [], offer: null };
 
-    case "place":
+    case "place": {
       if (state.lines.length === 0) return state;
+      const past: PastOrder = {
+        code: action.orderId,
+        orderDbId: action.orderDbId,
+        placedAt: Date.now(),
+        mode: state.mode ?? "dinein",
+        tableNumber: action.tableNumber,
+        lines: state.lines,
+        total: state.lines.reduce((n, l) => n + l.qty * l.unitPrice, 0),
+      };
       return {
         ...state,
-        /* Dine-in guests watch the ticket move. A delivery guest is not in
-           the room, so there is no stage to follow and nothing to poll —
-           the restaurant rings them instead. */
-        stage: state.mode === "delivery" ? null : "placed",
+        /* Newest first, and capped: a phone that eats here every week should
+           not carry a year of receipts around. */
+        history: [past, ...state.history].slice(0, 25),
+        /* Everyone watches their ticket move, in the room or not: a guest
+           waiting to collect wants to know when to walk over. */
+        stage: "placed",
         orderId: action.orderId,
-        orderDbId: state.mode === "delivery" ? null : action.orderDbId,
+        orderDbId: action.orderDbId,
         placedLines: state.lines,
         lines: [],
         offer: null,
       };
+    }
+
+    /* Ordering the same again puts the lines back in the basket rather than
+       sending anything — they may want to change the quantity first. */
+    case "reorder": {
+      const merged = [...state.lines];
+      for (const line of action.lines) {
+        const found = merged.find((l) => l.lineId === line.lineId);
+        if (found) found.qty += line.qty;
+        else merged.push({ ...line });
+      }
+      return { ...state, lines: merged };
+    }
 
     case "session":
       return { ...state, sessionId: action.sessionId };
@@ -218,13 +261,13 @@ function reducer(state: State, action: Action): State {
         ...state,
         mode: action.mode,
         tableToken: action.tableToken,
-        address: action.address,
+        pickup: action.pickup,
       };
 
-    /* Switching between dine-in and delivery re-opens the popup. The basket
-       survives — they may have picked dishes before changing their mind. */
+    /* Switching between eating in and collecting re-opens the popup. The
+       basket survives — they may have picked dishes first. */
     case "resetMode":
-      return { ...state, mode: null, address: null };
+      return { ...state, mode: null, pickup: null };
 
     default:
       return state;
@@ -252,9 +295,10 @@ type CartApi = {
   setMode: (
     mode: OrderMode,
     tableToken: string | null,
-    address: DeliveryAddress | null,
+    pickup: PickupDetails | null,
   ) => void;
   resetMode: () => void;
+  reorder: (lines: CartLine[]) => void;
   qtyOf: (itemId: string) => number;
   count: number;
   subtotal: number;
@@ -307,7 +351,8 @@ export function CartProvider({
           customer: state.customer,
           mode: state.mode,
           tableToken: state.tableToken,
-          address: state.address,
+          pickup: state.pickup,
+          history: state.history,
         }),
       );
     } catch {
@@ -386,18 +431,22 @@ export function CartProvider({
     (
       mode: OrderMode,
       tableToken: string | null,
-      address: DeliveryAddress | null,
-    ) => dispatch({ type: "mode", mode, tableToken, address }),
+      pickup: PickupDetails | null,
+    ) => dispatch({ type: "mode", mode, tableToken, pickup }),
     [],
   );
   const resetMode = useCallback(() => dispatch({ type: "resetMode" }), []);
+  const reorder = useCallback(
+    (lines: CartLine[]) => dispatch({ type: "reorder", lines }),
+    [],
+  );
 
   const linesRef = state.lines;
   const guestsRef = state.guests;
   const sessionRef = state.sessionId;
   const offerRef = state.offer;
   const modeRef = state.mode;
-  const addressRef = state.address;
+  const pickupRef = state.pickup;
   const chosenTable = state.tableToken;
 
   const placeOrder = useCallback(async () => {
@@ -412,7 +461,7 @@ export function CartProvider({
       slug,
       /* The printed table code wins; otherwise the table they picked in the
          popup. Delivery sends neither. */
-      token: modeRef === "delivery" ? null : (token ?? chosenTable),
+      token: modeRef === "pickup" ? null : (token ?? chosenTable),
       sessionId: sessionRef,
       guests: guestsRef,
       lines: linesRef.map((line) => ({
@@ -421,12 +470,17 @@ export function CartProvider({
         optionIds: line.optionIds,
       })),
       offerCode: offerRef?.code,
-      delivery: modeRef === "delivery" && addressRef ? addressRef : undefined,
+      pickup: modeRef === "pickup" && pickupRef ? pickupRef : undefined,
     });
 
     if (!result.ok) return result;
 
-    dispatch({ type: "place", orderId: result.code, orderDbId: result.orderId });
+    dispatch({
+      type: "place",
+      orderId: result.code,
+      orderDbId: result.orderId,
+      tableNumber: chosenTable ?? token ?? null,
+    });
     return { ok: true as const, code: result.code };
   }, [
     linesRef,
@@ -434,7 +488,7 @@ export function CartProvider({
     sessionRef,
     offerRef,
     modeRef,
-    addressRef,
+    pickupRef,
     chosenTable,
     slug,
     token,
@@ -467,6 +521,7 @@ export function CartProvider({
       setCustomer,
       setMode,
       resetMode,
+      reorder,
       count,
       subtotal,
       qtyOf: (itemId: string) =>
@@ -492,6 +547,7 @@ export function CartProvider({
     setCustomer,
     setMode,
     resetMode,
+    reorder,
   ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

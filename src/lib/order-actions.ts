@@ -2,24 +2,22 @@
 
 import { db } from "./db";
 
-/** Where an order is going. Delivery is fulfilled by the restaurant itself. */
-export type DeliveryDetails = {
+/** Who is collecting, and the number to ring when it is ready. */
+export type PickupDetails = {
   name: string;
   phone: string;
-  address: string;
-  note?: string;
 };
 
 export type PlaceOrderInput = {
   slug: string;
-  /** The table's printed code. Null when the guest chose delivery. */
+  /** The table's printed code. Null when the guest is collecting. */
   token: string | null;
   sessionId: string;
   guests: number;
   lines: { itemId: string; qty: number; optionIds: string[] }[];
   offerCode?: string;
-  /** Present only for delivery, and then all of it is required. */
-  delivery?: DeliveryDetails;
+  /** Present only for collection, and then both parts are required. */
+  pickup?: PickupDetails;
 };
 
 /* Indian mobile numbers, however the guest types them. */
@@ -103,7 +101,7 @@ async function nextCode(restaurantId: string) {
  * dish costs is a display detail; the bill is built server-side.
  */
 export async function placeOrder(input: PlaceOrderInput) {
-  const forDelivery = Boolean(input.delivery);
+  const forPickup = Boolean(input.pickup);
 
   const restaurant = await db.restaurant.findUnique({
     where: { slug: input.slug },
@@ -111,8 +109,8 @@ export async function placeOrder(input: PlaceOrderInput) {
       id: true,
       gstPercent: true,
       isOpen: true,
-      acceptsDelivery: true,
-      deliveryMinPaise: true,
+      acceptsPickup: true,
+      pickupMinPaise: true,
     },
   });
   if (!restaurant) {
@@ -122,19 +120,18 @@ export async function placeOrder(input: PlaceOrderInput) {
   /* A table order needs a live table; a delivery order needs none. Either way
      the destination is settled before a single price is read. */
   let tableId: string | null = null;
-  let delivery: DeliveryDetails | null = null;
+  let pickup: PickupDetails | null = null;
 
-  if (forDelivery) {
-    if (!restaurant.acceptsDelivery) {
+  if (forPickup) {
+    if (!restaurant.acceptsPickup) {
       return {
         ok: false as const,
-        message: "This restaurant isn't delivering right now.",
+        message: "This restaurant isn't taking pickup orders right now.",
       };
     }
 
-    const name = (input.delivery!.name ?? "").trim();
-    const phone = cleanPhone(input.delivery!.phone ?? "");
-    const address = (input.delivery!.address ?? "").trim();
+    const name = (input.pickup!.name ?? "").trim();
+    const phone = cleanPhone(input.pickup!.phone ?? "");
 
     if (name.length < 2) {
       return { ok: false as const, field: "name", message: "Add a name for the order." };
@@ -146,20 +143,8 @@ export async function placeOrder(input: PlaceOrderInput) {
         message: "Enter a 10-digit mobile number so they can reach you.",
       };
     }
-    if (address.length < 10) {
-      return {
-        ok: false as const,
-        field: "address",
-        message: "Add a full address — house or flat, street, and area.",
-      };
-    }
 
-    delivery = {
-      name: name.slice(0, 80),
-      phone,
-      address: address.slice(0, 300),
-      note: (input.delivery!.note ?? "").trim().slice(0, 160) || undefined,
-    };
+    pickup = { name: name.slice(0, 80), phone };
   } else {
     const table = await db.restaurantTable.findUnique({
       where: { qrToken: (input.token ?? "").toUpperCase() },
@@ -225,11 +210,11 @@ export async function placeOrder(input: PlaceOrderInput) {
     if (offer.ok) discount = offer.discountPaise;
   }
 
-  if (forDelivery && subtotal < restaurant.deliveryMinPaise) {
-    const short = (restaurant.deliveryMinPaise - subtotal) / 100;
+  if (forPickup && subtotal < restaurant.pickupMinPaise) {
+    const short = (restaurant.pickupMinPaise - subtotal) / 100;
     return {
       ok: false as const,
-      message: `Delivery orders start at ₹${Math.round(restaurant.deliveryMinPaise / 100)} — add ₹${Math.ceil(short)} more.`,
+      message: `Pickup orders start at ₹${Math.round(restaurant.pickupMinPaise / 100)} — add ₹${Math.ceil(short)} more.`,
     };
   }
 
@@ -242,13 +227,11 @@ export async function placeOrder(input: PlaceOrderInput) {
       tableId,
       sessionId: input.sessionId,
       code: await nextCode(restaurant.id),
-      channel: forDelivery ? "DELIVERY" : "QR",
+      channel: forPickup ? "PICKUP" : "QR",
       stage: "PLACED",
-      guests: forDelivery ? 1 : Math.max(1, Math.min(input.guests, 30)),
-      customerName: delivery?.name ?? null,
-      customerPhone: delivery?.phone ?? null,
-      customerAddress: delivery?.address ?? null,
-      addressNote: delivery?.note ?? null,
+      guests: forPickup ? 1 : Math.max(1, Math.min(input.guests, 30)),
+      customerName: pickup?.name ?? null,
+      customerPhone: pickup?.phone ?? null,
       subtotalPaise: subtotal,
       discountPaise: discount,
       taxPaise: tax,

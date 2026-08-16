@@ -35,11 +35,11 @@ export function OrderPanel({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const bill = billFor(subtotal, gstPercent, state.offer?.discount ?? 0);
-  /* The address was taken in the opening popup, so the cart only has to show
-     it back and let them fix it. */
-  const forDelivery = state.mode === "delivery";
+  /* Name and number were taken in the opening popup, so the cart only shows
+     them back and offers a way to change them. */
+  const forPickup = state.mode === "pickup";
   const belowMinimum =
-    forDelivery && restaurant.deliveryMin > 0 && bill.subtotal < restaurant.deliveryMin;
+    forPickup && restaurant.pickupMin > 0 && bill.subtotal < restaurant.pickupMin;
 
   if (count === 0) {
     return (
@@ -63,12 +63,7 @@ export function OrderPanel({
         setError(result.message);
         return;
       }
-      notify(
-        forDelivery
-          ? `Order ${result.code} placed — ${restaurant.name} will call you`
-          : `Order ${result.code} sent to the kitchen`,
-        "good",
-      );
+      notify(`Order ${result.code} sent to the kitchen`, "good");
       onPlaced?.();
     });
   }
@@ -169,10 +164,10 @@ export function OrderPanel({
         </div>
       </dl>
 
-      {forDelivery ? (
+      {forPickup ? (
         <div className="flex flex-col gap-1.5 border-t border-dashed border-line pt-4">
           <p className="flex items-baseline gap-2 text-sm font-semibold text-ink">
-            Delivering to
+            Collecting
             <button
               type="button"
               onClick={resetMode}
@@ -181,14 +176,8 @@ export function OrderPanel({
               Change
             </button>
           </p>
-          <p className="text-sm text-ink">{state.address?.name}</p>
-          <p className="num text-xs text-ink-2">{state.address?.phone}</p>
-          <p className="text-xs leading-relaxed text-ink-2">
-            {state.address?.address}
-          </p>
-          {state.address?.note ? (
-            <p className="text-xs text-ink-3">{state.address.note}</p>
-          ) : null}
+          <p className="text-sm text-ink">{state.pickup?.name}</p>
+          <p className="num text-xs text-ink-2">{state.pickup?.phone}</p>
         </div>
       ) : (
         <GuestCount />
@@ -210,9 +199,9 @@ export function OrderPanel({
           {pending
             ? "Sending…"
             : belowMinimum
-              ? `Minimum ₹${restaurant.deliveryMin}`
-              : forDelivery
-                ? "Place delivery order"
+              ? `Minimum ₹${restaurant.pickupMin}`
+              : forPickup
+                ? "Place pickup order"
                 : "Send to kitchen"}
         </span>
         <span className="num">
@@ -222,8 +211,8 @@ export function OrderPanel({
 
       <div className="flex items-center justify-between gap-3">
         <p className="num text-xs text-ink-3">
-          {forDelivery
-            ? "Pay the rider on delivery"
+          {forPickup
+            ? "Pay when you collect"
             : `Table ${tableNumber} · ${state.guests} guests · pay at the counter`}
         </p>
         <button

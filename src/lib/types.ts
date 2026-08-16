@@ -48,12 +48,12 @@ export type Restaurant = {
   serviceHours: string;
   isOpen: boolean;
   currency: string;
-  /** Whether this restaurant delivers its own orders. */
-  acceptsDelivery: boolean;
-  /** Their delivery terms — area, charge, timing. Their promise, not ours. */
-  deliveryNote?: string;
-  /** Smallest delivery order they will send out, in rupees. 0 = no minimum. */
-  deliveryMin: number;
+  /** Whether guests may order to collect at the counter. */
+  acceptsPickup: boolean;
+  /** When it is ready and where to collect it — the restaurant's own words. */
+  pickupNote?: string;
+  /** Smallest collection order, in rupees. 0 = no minimum. */
+  pickupMin: number;
 };
 
 /** A slide in the strip above the menu. */
@@ -100,14 +100,12 @@ export type CustomerDetails = {
  * canteens as well as on tables, so the menu cannot assume anyone is sitting
  * in the restaurant — it has to ask.
  */
-export type OrderMode = "dinein" | "delivery";
+export type OrderMode = "dinein" | "pickup";
 
-/** Where a delivery is going. Collected before the guest browses. */
-export type DeliveryAddress = {
+/** Who is collecting, and the number to ring when it is ready. */
+export type PickupDetails = {
   name: string;
   phone: string;
-  address: string;
-  note: string;
 };
 
 export type WaiterRequest =

@@ -5,6 +5,7 @@ import { Navbar } from "./Navbar";
 import { MenuBrowser } from "./MenuBrowser";
 import { BannerRail } from "./BannerRail";
 import { OrderModeSheet } from "./OrderModeSheet";
+import { OrderHistorySheet } from "./OrderHistorySheet";
 import { OrderPanel } from "./OrderPanel";
 import { OrderTracker } from "./OrderTracker";
 import { CallWaiterSheet, useWaiterCooldown } from "./CallWaiterSheet";
@@ -52,13 +53,14 @@ export function MenuShell({
   const [cartOpen, setCartOpen] = useState(false);
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const cooldown = useWaiterCooldown();
 
   const bill = billFor(subtotal, restaurant.gstPercent, state.offer?.discount ?? 0);
 
-  /* Delivery guests are not in the room: no table, nobody to call over, and
-     no ticket to watch — the restaurant phones them instead. */
-  const forDelivery = state.mode === "delivery";
+  /* A guest collecting is not in the room: no table and nobody to call over,
+     though they still follow the ticket so they know when to walk in. */
+  const forPickup = state.mode === "pickup";
   const seated = state.mode === "dinein";
   const orderLive = Boolean(state.stage);
   const isReady = state.stage === "ready";
@@ -74,8 +76,8 @@ export function MenuShell({
       <OrderModeSheet restaurant={restaurant} table={table} tables={tables} />
 
       <main className="mx-auto w-full max-w-140 px-4 sm:px-6">
-        {forDelivery ? (
-          <DeliveryStrip restaurant={restaurant} />
+        {forPickup ? (
+          <PickupStrip restaurant={restaurant} />
         ) : seatedAt ? (
           <SeatStrip number={seatedAt.number} section={seatedAt.section} />
         ) : null}
@@ -150,13 +152,13 @@ export function MenuShell({
             type="button"
             onClick={() => setWaiterOpen(true)}
             aria-label={
-              cooldown > 0 ? `Server called, ${cooldown} seconds left` : "Call a server"
+              cooldown > 0 ? `Staff called, ${cooldown} seconds left` : "Call staff"
             }
             className={clsx(
               "flex h-12 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold transition active:scale-95",
               cooldown > 0
                 ? "bg-veg/12 text-veg"
-                : "bg-surface-2 text-ink hover:brightness-95",
+                : "bg-nonveg text-white hover:brightness-110",
             )}
           >
             <svg viewBox="0 0 20 20" className="size-4" fill="none" aria-hidden="true">
@@ -171,7 +173,7 @@ export function MenuShell({
             {cooldown > 0 ? (
               <span className="num text-xs">{cooldown}s</span>
             ) : (
-              <span className="hidden xs:inline">Server</span>
+              <span>Staff</span>
             )}
           </button>
           ) : null}
@@ -204,7 +206,7 @@ export function MenuShell({
         onClose={() => setCartOpen(false)}
         title="Your order"
         description={
-          forDelivery ? "For delivery" : seatedAt ? `Table ${seatedAt.number}` : ""
+          forPickup ? "To collect" : seatedAt ? `Table ${seatedAt.number}` : ""
         }
       >
         <OrderPanel
@@ -224,9 +226,28 @@ export function MenuShell({
         onClose={() => setTrackerOpen(false)}
         title="Order status"
         description="Updates on its own."
+        footer={
+          state.history.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setTrackerOpen(false);
+                setHistoryOpen(true);
+              }}
+              className="w-full rounded-full border border-line py-3 text-sm font-semibold text-ink transition hover:bg-surface-2 active:scale-[0.99]"
+            >
+              Your past orders
+            </button>
+          ) : null
+        }
       >
         <OrderTracker items={items} onDone={() => setTrackerOpen(false)} />
       </Sheet>
+
+      <OrderHistorySheet
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+      />
 
       {seated && seatedAt ? (
         <CallWaiterSheet
@@ -242,9 +263,8 @@ export function MenuShell({
 }
 
 /**
- * Stands in for the table strip when the order is going out for delivery.
- * States plainly whose delivery it is — the restaurant rides its own orders,
- * and the guest should know who to call.
+ * Stands in for the table strip when the guest is collecting, carrying the
+ * restaurant's own words about when it will be ready and where to come.
  */
 /** Which table the kitchen is cooking for, however it was chosen. */
 function SeatStrip({ number, section }: { number: string; section: string }) {
@@ -268,7 +288,7 @@ function SeatStrip({ number, section }: { number: string; section: string }) {
   );
 }
 
-function DeliveryStrip({ restaurant }: { restaurant: Restaurant }) {
+function PickupStrip({ restaurant }: { restaurant: Restaurant }) {
   return (
     <div className="mt-3 rounded-xl border border-line bg-surface-2 px-3.5 py-3">
       <p className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -282,16 +302,16 @@ function DeliveryStrip({ restaurant }: { restaurant: Restaurant }) {
           <circle cx="6" cy="14.8" r="1.4" stroke="currentColor" strokeWidth="1.5" />
           <circle cx="13.6" cy="14.8" r="1.4" stroke="currentColor" strokeWidth="1.5" />
         </svg>
-        Delivery from {restaurant.name}
+        Collecting from {restaurant.name}
       </p>
-      {restaurant.deliveryNote ? (
+      {restaurant.pickupNote ? (
         <p className="mt-1 text-xs leading-relaxed text-ink-2">
-          {restaurant.deliveryNote}
+          {restaurant.pickupNote}
         </p>
       ) : null}
-      {restaurant.deliveryMin > 0 ? (
+      {restaurant.pickupMin > 0 ? (
         <p className="num mt-1 text-xs text-ink-3">
-          Minimum order ₹{restaurant.deliveryMin}
+          Minimum order ₹{restaurant.pickupMin}
         </p>
       ) : null}
       <ChangeMode />

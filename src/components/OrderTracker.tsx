@@ -2,6 +2,7 @@
 
 import { AddOnsRail } from "./AddOnsRail";
 import { DetailsCard } from "./DetailsCard";
+import { useToast } from "./Toaster";
 import { useCart } from "@/lib/cart-store";
 import { clsx, money } from "@/lib/format";
 import type { MenuItem, OrderStage } from "@/lib/types";
@@ -21,7 +22,8 @@ export function OrderTracker({
   items: MenuItem[];
   onDone?: () => void;
 }) {
-  const { state, resetOrder } = useCart();
+  const { state, resetOrder, reorder } = useCart();
+  const notify = useToast();
   if (!state.stage) return null;
 
   const current = STEPS.findIndex((s) => s.id === state.stage);
@@ -110,20 +112,39 @@ export function OrderTracker({
       <div className="border-t border-line px-5 py-4">
         <ul className="flex flex-col gap-1.5">
           {state.placedLines.map((line) => (
-            <li key={line.lineId} className="flex justify-between gap-3 text-sm">
-              <span className="min-w-0 truncate text-ink-2">
+            <li key={line.lineId} className="flex items-center gap-2.5 text-sm">
+              <span className="min-w-0 flex-1 truncate text-ink-2">
                 <span className="num">{line.qty}×</span> {line.name}
               </span>
               <span className="num shrink-0 text-ink">
                 {money(line.qty * line.unitPrice)}
               </span>
+              {/* Same again, straight from the ticket they are looking at. */}
+              <button
+                type="button"
+                onClick={() => {
+                  reorder([line]);
+                  notify(`${line.name} added to your order`, "good");
+                }}
+                className="shrink-0 rounded-full border border-accent px-2.5 py-1 text-[0.625rem] font-semibold text-accent transition active:scale-95 hover:bg-accent-soft"
+              >
+                Reorder
+              </button>
             </li>
           ))}
         </ul>
 
-        <p className="num mt-3 text-[0.6875rem] text-ink-3">
-          {state.guests} {state.guests === 1 ? "guest" : "guests"} · total{" "}
-          {money(total)} · pay at the counter
+        {/* The total is what a guest checks against the bill, so it is the
+            one number here that is allowed to shout. */}
+        <div className="mt-3 flex items-baseline justify-between rounded-lg bg-surface-2 px-3 py-2.5">
+          <span className="text-[0.8125rem] font-semibold text-ink">Total</span>
+          <span className="num text-base font-semibold text-ink">
+            {money(total)}
+          </span>
+        </div>
+        <p className="num mt-1.5 text-[0.6875rem] text-ink-3">
+          {state.guests} {state.guests === 1 ? "guest" : "guests"} · pay at the
+          counter
         </p>
 
         {/* Suggestions and details come after the commitment, never before. */}
