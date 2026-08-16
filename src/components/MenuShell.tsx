@@ -38,6 +38,7 @@ export function MenuShell({
   items,
   qrSvg,
   qrUrl,
+  language,
 }: {
   restaurant: Restaurant;
   /** Set only when they scanned the code printed on one particular table. */
@@ -49,6 +50,8 @@ export function MenuShell({
   items: MenuItem[];
   qrSvg: string;
   qrUrl: string;
+  /** The language the menu is being shown in right now. */
+  language: string;
 }) {
   const { state, count, subtotal } = useCart();
   const [cartOpen, setCartOpen] = useState(false);
@@ -89,7 +92,7 @@ export function MenuShell({
           </p>
         ) : null}
 
-        <LanguagePicker languages={restaurant.languages} />
+        <LanguagePicker languages={restaurant.languages} active={language} />
 
         <BannerRail banners={banners} />
 

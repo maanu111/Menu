@@ -198,6 +198,18 @@ const loadMenu = cache(async function loadMenu(
   };
 });
 
+/** Just the languages a restaurant offers — needed before the menu is read,
+ *  to decide which language to read it in. */
+export const offeredLanguages = cache(async function offeredLanguages(
+  slug: string,
+) {
+  const row = await db.restaurant.findUnique({
+    where: { slug },
+    select: { menuLanguages: true },
+  });
+  return readLanguages(row?.menuLanguages);
+});
+
 /** The menu behind a printed table QR. */
 export async function getTableMenu(slug: string, token: string, lang = "") {
   return (await loadMenu(slug, token, lang)) as TableMenu | null;

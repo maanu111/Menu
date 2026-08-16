@@ -1,11 +1,13 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { MenuShell } from "@/components/MenuShell";
 import { ScanLogger } from "@/components/ScanLogger";
 import { ToastProvider } from "@/components/Toaster";
 import { CartProvider } from "@/lib/cart-store";
-import { getTableMenu } from "@/lib/menu-queries";
+import { getTableMenu, offeredLanguages } from "@/lib/menu-queries";
 import { qrSvg, tableUrl } from "@/lib/qr";
 import { brandStyle } from "@/lib/brand";
+import { pickLanguage } from "@/lib/pick-language";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,9 @@ export default async function TableMenuPage({
   const { lang } = await searchParams;
 
   /* A printed QR must resolve to a real, open table or show nothing at all. */
-  const menu = await getTableMenu(slug, token, lang ?? "");
+  const offered = await offeredLanguages(slug);
+  const chosen = pickLanguage(lang, (await headers()).get("accept-language"), offered);
+  const menu = await getTableMenu(slug, token, chosen);
   if (!menu) notFound();
 
   const url = tableUrl(menu.restaurant.slug, menu.table.token);
@@ -64,6 +68,7 @@ export default async function TableMenuPage({
           items={menu.items}
           qrSvg={await qrSvg(url)}
           qrUrl={url}
+          language={chosen}
         />
         </div>
       </CartProvider>

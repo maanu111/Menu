@@ -1,9 +1,11 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { MenuShell } from "@/components/MenuShell";
 import { ToastProvider } from "@/components/Toaster";
 import { CartProvider } from "@/lib/cart-store";
-import { getRestaurantMenu } from "@/lib/menu-queries";
+import { getRestaurantMenu, offeredLanguages } from "@/lib/menu-queries";
 import { brandStyle } from "@/lib/brand";
+import { pickLanguage } from "@/lib/pick-language";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,11 @@ export default async function RestaurantMenuPage({
   const { slug } = await params;
   const { lang } = await searchParams;
 
-  const menu = await getRestaurantMenu(slug, lang ?? "");
+  /* The phone says what its owner reads; an explicit tap overrides it. */
+  const offered = await offeredLanguages(slug);
+  const chosen = pickLanguage(lang, (await headers()).get("accept-language"), offered);
+
+  const menu = await getRestaurantMenu(slug, chosen);
   if (!menu) notFound();
 
   return (
@@ -55,6 +61,7 @@ export default async function RestaurantMenuPage({
             items={menu.items}
             qrSvg=""
             qrUrl=""
+            language={chosen}
           />
         </div>
       </CartProvider>

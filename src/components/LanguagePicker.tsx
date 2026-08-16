@@ -12,7 +12,15 @@ import { languageLabel } from "@/lib/languages";
  * that language. Nothing rewrites the page after it arrives — which is the
  * whole reason this is reliable where a translate widget is not.
  */
-export function LanguagePicker({ languages }: { languages: string[] }) {
+export function LanguagePicker({
+  languages,
+  active,
+}: {
+  languages: string[];
+  /** What the menu is actually in — which may have come from the phone
+      rather than from a tap, so the URL alone cannot be trusted. */
+  active: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -20,12 +28,13 @@ export function LanguagePicker({ languages }: { languages: string[] }) {
 
   if (languages.length === 0) return null;
 
-  const current = params.get("lang") ?? "";
+  const current = active;
 
   function choose(code: string) {
     const next = new URLSearchParams(params.toString());
-    if (code) next.set("lang", code);
-    else next.delete("lang");
+    /* Choosing English is a real choice, not the absence of one — it has to
+       stick on a phone whose language is set to something else. */
+    next.set("lang", code || "en");
     startTransition(() => {
       router.replace(`${pathname}?${next.toString()}`, { scroll: false });
       /* The menu is server-rendered per language, so it has to be refetched. */
