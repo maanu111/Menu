@@ -26,6 +26,17 @@ export async function generateMetadata({
     description:
       menu.restaurant.tagline ||
       `Browse the menu and order from your table at ${menu.restaurant.name}.`,
+    /* Installs as the restaurant, and opens on the restaurant's own menu —
+       whoever installs from table 5 today is somewhere else tomorrow. */
+    manifest: `/r/${slug}/manifest.webmanifest`,
+    appleWebApp: {
+      capable: true,
+      title: menu.restaurant.name,
+      statusBarStyle: "default" as const,
+    },
+    icons: {
+      apple: `/r/${slug}/icon?size=192`,
+    },
   };
 }
 

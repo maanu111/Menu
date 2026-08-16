@@ -6,6 +6,7 @@ import { MenuBrowser } from "./MenuBrowser";
 import { BannerRail } from "./BannerRail";
 import { OrderModeSheet } from "./OrderModeSheet";
 import { OrderHistorySheet } from "./OrderHistorySheet";
+import { InstallButton } from "./InstallButton";
 import { OrderPanel } from "./OrderPanel";
 import { OrderTracker } from "./OrderTracker";
 import { CallWaiterSheet, useWaiterCooldown } from "./CallWaiterSheet";
@@ -206,6 +207,8 @@ export function MenuShell({
               {orderLive ? "Order in progress" : "Add a dish to start"}
             </p>
           )}
+
+          <InstallButton />
         </div>
       </div>
 

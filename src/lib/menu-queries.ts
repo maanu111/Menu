@@ -178,7 +178,6 @@ const loadMenu = cache(async function loadMenu(
       menuNote: row.menuNote ?? undefined,
       fssai: row.fssai ?? "",
       gstPercent: row.gstPercent,
-      serviceHours: row.serviceHours ?? "",
       isOpen: row.isOpen,
       currency: row.currency,
       acceptsPickup: row.acceptsPickup,

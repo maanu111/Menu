@@ -21,6 +21,16 @@ export async function generateMetadata({
     title: `${menu.restaurant.name} · Menu`,
     description:
       menu.restaurant.tagline || `Order from ${menu.restaurant.name}.`,
+    /* Makes the menu installable, as this restaurant rather than as a page. */
+    manifest: `/r/${slug}/manifest.webmanifest`,
+    appleWebApp: {
+      capable: true,
+      title: menu.restaurant.name,
+      statusBarStyle: "default" as const,
+    },
+    icons: {
+      apple: `/r/${slug}/icon?size=192`,
+    },
   };
 }
 

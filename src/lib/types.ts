@@ -45,7 +45,6 @@ export type Restaurant = {
   menuNote?: string;
   fssai: string;
   gstPercent: number;
-  serviceHours: string;
   isOpen: boolean;
   currency: string;
   /** Whether guests may order to collect at the counter. */

@@ -129,7 +129,6 @@ model Restaurant {
   fssai        String?
   gstPercent   Int      @default(5)
   currency     String   @default("INR")
-  serviceHours String?
   isOpen       Boolean  @default(true)
   /// Whether guests may order to collect as well as at a table.
   acceptsPickup Boolean @default(false)
@@ -138,9 +137,6 @@ model Restaurant {
   pickupNote    String? @db.VarChar(300)
   /// Smallest order the kitchen will make up for collection, in paise.
   pickupMinPaise Int    @default(0)
-  /// Languages the guest menu offers, as BCP-47 codes, e.g. ["hi","kn"].
-  /// English is the original and is always available, so it is not listed.
-  menuLanguages  Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -273,6 +269,10 @@ model MenuItem {
   @@unique([restaurantId, code])
   @@index([restaurantId, categoryId])
   @@index([restaurantId, isAvailable])
+  /// MySQL creates this for the foreign key whether we ask or not. Declaring
+  /// it keeps `prisma migrate diff` silent, so a diff that is not empty is
+  /// always real drift rather than noise to squint past.
+  @@index([categoryId], map: "MenuItem_categoryId_fkey")
 }
 
 /// A dish's name and description in one other language.
@@ -440,6 +440,7 @@ model Order {
   @@index([restaurantId, placedAt])
   @@index([restaurantId, stage])
   @@index([tableId, stage])
+  @@index([takenById], map: "Order_takenById_fkey")
 }
 
 model OrderItem {
@@ -489,6 +490,7 @@ model Expense {
 
   @@index([restaurantId, spentAt])
   @@index([restaurantId, category])
+  @@index([recordedById], map: "Expense_recordedById_fkey")
 }
 
 /// A slide at the top of the guest menu — a poster for an offer, a new dish,
@@ -581,6 +583,7 @@ model SupportTicket {
   @@index([restaurantId, status])
   @@index([status, priority])
   @@index([updatedAt])
+  @@index([openedById], map: "SupportTicket_openedById_fkey")
 }
 
 model SupportMessage {
@@ -596,6 +599,7 @@ model SupportMessage {
   author    User          @relation("MessageAuthor", fields: [authorId], references: [id])
 
   @@index([ticketId, createdAt])
+  @@index([authorId], map: "SupportMessage_authorId_fkey")
 }
 
 // ------------------------------------------------------- Payment settings
@@ -631,4 +635,5 @@ model WaiterCall {
 
   @@index([restaurantId, acknowledgedAt])
   @@index([tableId, createdAt])
+  @@index([acknowledgedById], map: "WaiterCall_acknowledgedById_fkey")
 }
