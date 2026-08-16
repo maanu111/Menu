@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Navbar } from "./Navbar";
 import { MenuBrowser } from "./MenuBrowser";
 import { BannerRail } from "./BannerRail";
-import { LanguagePicker } from "./LanguagePicker";
 import { OrderModeSheet } from "./OrderModeSheet";
 import { OrderHistorySheet } from "./OrderHistorySheet";
 import { OrderPanel } from "./OrderPanel";
@@ -75,7 +74,13 @@ export function MenuShell({
 
   return (
     <>
-      <Navbar restaurant={restaurant} table={table} qrSvg={qrSvg} qrUrl={qrUrl} />
+      <Navbar
+        restaurant={restaurant}
+        table={table}
+        qrSvg={qrSvg}
+        qrUrl={qrUrl}
+        language={language}
+      />
 
       <OrderModeSheet restaurant={restaurant} table={table} tables={tables} />
 
@@ -83,7 +88,7 @@ export function MenuShell({
         {forPickup ? (
           <PickupStrip restaurant={restaurant} />
         ) : seatedAt ? (
-          <SeatStrip number={seatedAt.number} section={seatedAt.section} />
+          <SeatStrip number={seatedAt.number} />
         ) : null}
 
         {restaurant.menuNote ? (
@@ -91,8 +96,6 @@ export function MenuShell({
             {restaurant.menuNote}
           </p>
         ) : null}
-
-        <LanguagePicker languages={restaurant.languages} active={language} />
 
         <BannerRail banners={banners} />
 
@@ -278,15 +281,12 @@ export function MenuShell({
  * restaurant's own words about when it will be ready and where to come.
  */
 /** Which table the kitchen is cooking for, however it was chosen. */
-function SeatStrip({ number, section }: { number: string; section: string }) {
+function SeatStrip({ number }: { number: string }) {
   const { resetMode } = useCart();
   return (
     <div className="mt-3 flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5">
       <p className="min-w-0 flex-1 text-sm font-semibold text-ink">
         Table <span className="num">{number}</span>
-        {section ? (
-          <span className="ml-1.5 text-xs font-normal text-ink-3">{section}</span>
-        ) : null}
       </p>
       <button
         type="button"

@@ -48,8 +48,6 @@ export type Restaurant = {
   serviceHours: string;
   isOpen: boolean;
   currency: string;
-  /** Languages this menu is offered in, besides the English it was written in. */
-  languages: string[];
   /** Whether guests may order to collect at the counter. */
   acceptsPickup: boolean;
   /** When it is ready and where to collect it — the restaurant's own words. */

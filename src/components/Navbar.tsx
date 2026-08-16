@@ -3,17 +3,21 @@
 import { useState } from "react";
 import { BrandLogo } from "./BrandLogo";
 import { Sheet } from "./Sheet";
+import { LanguagePicker } from "./LanguagePicker";
 import { useToast } from "./Toaster";
 import type { Restaurant, TableInfo } from "@/lib/types";
 
 export function Navbar({
   restaurant,
   table,
+  language,
   qrSvg,
   qrUrl,
 }: {
   restaurant: Restaurant;
   table: TableInfo | null;
+  /** What the menu is currently written in. */
+  language: string;
   qrSvg: string;
   qrUrl: string;
 }) {
@@ -56,6 +60,8 @@ export function Navbar({
               </span>
             </p>
           </div>
+
+          <LanguagePicker active={language} />
 
           {table ? (
           <button

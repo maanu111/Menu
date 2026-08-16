@@ -4,7 +4,7 @@ import { MenuShell } from "@/components/MenuShell";
 import { ScanLogger } from "@/components/ScanLogger";
 import { ToastProvider } from "@/components/Toaster";
 import { CartProvider } from "@/lib/cart-store";
-import { getTableMenu, offeredLanguages } from "@/lib/menu-queries";
+import { getTableMenu } from "@/lib/menu-queries";
 import { qrSvg, tableUrl } from "@/lib/qr";
 import { brandStyle } from "@/lib/brand";
 import { pickLanguage } from "@/lib/pick-language";
@@ -40,8 +40,7 @@ export default async function TableMenuPage({
   const { lang } = await searchParams;
 
   /* A printed QR must resolve to a real, open table or show nothing at all. */
-  const offered = await offeredLanguages(slug);
-  const chosen = pickLanguage(lang, (await headers()).get("accept-language"), offered);
+  const chosen = pickLanguage(lang, (await headers()).get("accept-language"));
   const menu = await getTableMenu(slug, token, chosen);
   if (!menu) notFound();
 

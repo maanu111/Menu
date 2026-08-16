@@ -1,7 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { db } from "./db";
-import { readLanguages } from "./languages";
+
+import { ensureTranslations } from "./translate";
 import type {
   Banner,
   Category,
@@ -65,6 +66,16 @@ const loadMenu = cache(async function loadMenu(
   /** Empty means English, which is what the owner typed. */
   lang: string = "",
 ): Promise<TableMenu | RestaurantMenu | null> {
+  /* Anything missing in this language is filled in before the menu is read,
+     so the guest who asked for it is the one who gets it. */
+  if (lang) {
+    const found = await db.restaurant.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (found) await ensureTranslations(found.id, lang);
+  }
+
   const row = await db.restaurant.findUnique({
     where: { slug },
     include: {
@@ -170,7 +181,6 @@ const loadMenu = cache(async function loadMenu(
       serviceHours: row.serviceHours ?? "",
       isOpen: row.isOpen,
       currency: row.currency,
-      languages: readLanguages(row.menuLanguages),
       acceptsPickup: row.acceptsPickup,
       pickupNote: row.pickupNote ?? undefined,
       pickupMin: row.pickupMinPaise / 100,
@@ -196,18 +206,6 @@ const loadMenu = cache(async function loadMenu(
       token: t.qrToken,
     })),
   };
-});
-
-/** Just the languages a restaurant offers — needed before the menu is read,
- *  to decide which language to read it in. */
-export const offeredLanguages = cache(async function offeredLanguages(
-  slug: string,
-) {
-  const row = await db.restaurant.findUnique({
-    where: { slug },
-    select: { menuLanguages: true },
-  });
-  return readLanguages(row?.menuLanguages);
 });
 
 /** The menu behind a printed table QR. */

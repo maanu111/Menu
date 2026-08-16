@@ -15,13 +15,12 @@ import { isLanguage } from "./languages";
 export function pickLanguage(
   requested: string | undefined,
   acceptLanguage: string | null,
-  offered: string[],
 ): string {
   /* The guest has spoken. "en" means the English the owner typed. */
   if (requested === "en") return "";
-  if (requested && offered.includes(requested)) return requested;
+  if (requested && isLanguage(requested)) return requested;
 
-  if (!acceptLanguage || offered.length === 0) return "";
+  if (!acceptLanguage) return "";
 
   /* "hi-IN,hi;q=0.9,en-GB;q=0.8" — take them in the order the browser meant,
      which is by q, highest first, and ties in the order written. */
@@ -47,7 +46,7 @@ export function pickLanguage(
   for (const entry of ranked) {
     /* English is never a translation — it is what the menu already is. */
     if (entry.base === "en") return "";
-    if (offered.includes(entry.base)) return entry.base;
+    return entry.base;
   }
 
   return "";

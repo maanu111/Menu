@@ -66,13 +66,6 @@ export function OrderModeSheet({
     setMode("pickup", null, { name: draft.name.trim(), phone });
   }
 
-  const sections = new Map<string, typeof tables>();
-  for (const row of tables) {
-    const key = row.section?.trim() || "Tables";
-    if (!sections.has(key)) sections.set(key, []);
-    sections.get(key)!.push(row);
-  }
-
   const TITLES: Record<Step, string> = {
     choose: `Welcome to ${restaurant.name}`,
     guests: "How many are eating?",
@@ -205,26 +198,19 @@ export function OrderModeSheet({
               No tables are open right now. Please ask a server.
             </p>
           ) : (
-            [...sections.entries()].map(([section, rows]) => (
-              <section key={section}>
-                {sections.size > 1 ? (
-                  <p className="eyebrow mb-2 text-ink-3">{section}</p>
-                ) : null}
-                <ul className="grid grid-cols-4 gap-2 xs:grid-cols-5">
-                  {rows.map((row) => (
-                    <li key={row.token}>
-                      <button
-                        type="button"
-                        onClick={() => setMode("dinein", row.token, null)}
-                        className="num flex aspect-square w-full items-center justify-center rounded-xl border border-line bg-surface text-lg font-semibold text-ink transition active:scale-95 hover:border-accent hover:text-accent"
-                      >
-                        {row.number}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))
+            <ul className="grid grid-cols-4 gap-2 xs:grid-cols-5">
+              {tables.map((row) => (
+                <li key={row.token}>
+                  <button
+                    type="button"
+                    onClick={() => setMode("dinein", row.token, null)}
+                    className="num flex aspect-square w-full items-center justify-center rounded-xl border border-line bg-surface text-lg font-semibold text-ink transition active:scale-95 hover:border-accent hover:text-accent"
+                  >
+                    {row.number}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
           <BackTo onClick={() => setStep("guests")} />
         </div>

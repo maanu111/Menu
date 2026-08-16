@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { MenuShell } from "@/components/MenuShell";
 import { ToastProvider } from "@/components/Toaster";
 import { CartProvider } from "@/lib/cart-store";
-import { getRestaurantMenu, offeredLanguages } from "@/lib/menu-queries";
+import { getRestaurantMenu } from "@/lib/menu-queries";
 import { brandStyle } from "@/lib/brand";
 import { pickLanguage } from "@/lib/pick-language";
 
@@ -41,8 +41,7 @@ export default async function RestaurantMenuPage({
   const { lang } = await searchParams;
 
   /* The phone says what its owner reads; an explicit tap overrides it. */
-  const offered = await offeredLanguages(slug);
-  const chosen = pickLanguage(lang, (await headers()).get("accept-language"), offered);
+  const chosen = pickLanguage(lang, (await headers()).get("accept-language"));
 
   const menu = await getRestaurantMenu(slug, chosen);
   if (!menu) notFound();
