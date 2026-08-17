@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Sheet } from "./Sheet";
+import { LanguagePicker } from "./LanguagePicker";
 import { useCart } from "@/lib/cart-store";
 import { clsx } from "@/lib/format";
+import { t } from "@/lib/ui-translations";
 import type { PickupDetails, Restaurant, TableInfo } from "@/lib/types";
 
 type Step = "choose" | "guests" | "table" | "pickup";
@@ -20,12 +22,15 @@ export function OrderModeSheet({
   restaurant,
   table,
   tables,
+  language,
 }: {
   restaurant: Restaurant;
   /** Set when they scanned the code printed on one particular table. */
   table: TableInfo | null;
   /** Every open table, for a guest who scanned the restaurant's shared code. */
   tables: { number: string; section: string; token: string }[];
+  /** The language the menu is being shown in right now. */
+  language: string;
 }) {
   const { state, setMode, setGuests } = useCart();
   const [step, setStep] = useState<Step>("choose");
@@ -55,11 +60,11 @@ export function OrderModeSheet({
   function submitPickup() {
     const phone = draft.phone.replace(/[^0-9]/g, "").replace(/^(0|91)(?=\d{10}$)/, "");
     if (draft.name.trim().length < 2) {
-      setError("Tell us who the order is for.");
+      setError(t("tellUsWho", language));
       return;
     }
     if (phone.length !== 10) {
-      setError("A 10-digit mobile number, so they can call when it's ready.");
+      setError(t("tenDigitMobile", language));
       return;
     }
     setError("");
@@ -67,16 +72,16 @@ export function OrderModeSheet({
   }
 
   const TITLES: Record<Step, string> = {
-    choose: `Welcome to ${restaurant.name}`,
-    guests: "How many are eating?",
-    table: "Which table are you at?",
-    pickup: "Who's collecting?",
+    choose: t("welcomeTo", language).replace("{name}", restaurant.name),
+    guests: t("howManyEating", language),
+    table: t("whichTable", language),
+    pickup: t("whosCollecting", language),
   };
   const NOTES: Record<Step, string> = {
-    choose: "How would you like to order?",
-    guests: "So the kitchen knows how much to make.",
-    table: "So the kitchen knows where to bring it.",
-    pickup: "A name to call out and a number to ring.",
+    choose: t("howToOrder", language),
+    guests: t("portionNote", language),
+    table: t("tableNote", language),
+    pickup: t("pickupFormNote", language),
   };
 
   return (
@@ -92,6 +97,12 @@ export function OrderModeSheet({
     >
       {step === "choose" ? (
         <div className="flex flex-col gap-2.5">
+          {/* Language picker pill — visible on the welcome screen so the
+              guest can switch before choosing dine-in or pickup. */}
+          <div className="flex justify-end -mt-1 mb-1">
+            <LanguagePicker active={language} />
+          </div>
+
           <button
             type="button"
             onClick={() => setStep("guests")}
@@ -103,10 +114,12 @@ export function OrderModeSheet({
             </svg>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold text-ink">
-                {table ? `I'm at table ${table.number}` : "I'm eating here"}
+                {table
+                  ? t("imAtTable", language).replace("{n}", table.number)
+                  : t("eatingHere", language)}
               </span>
               <span className="block text-xs text-ink-2">
-                Order to your table and follow it as it cooks.
+                {t("dineInDesc", language)}
               </span>
             </span>
           </button>
@@ -123,12 +136,12 @@ export function OrderModeSheet({
               </svg>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-ink">
-                  Pickup / takeaway
+                  {t("pickupTakeaway", language)}
                 </span>
                 <span className="block text-xs text-ink-2">
-                  {restaurant.pickupNote?.trim() || "Collect it at the counter."}
+                  {restaurant.pickupNote?.trim() || t("collectAtCounter", language)}
                   {restaurant.pickupMin > 0
-                    ? ` Minimum ₹${restaurant.pickupMin}.`
+                    ? ` ${t("minimum", language).replace("{n}", String(restaurant.pickupMin))}`
                     : ""}
                 </span>
               </span>
@@ -185,9 +198,11 @@ export function OrderModeSheet({
             onClick={confirmGuests}
             className="h-12 w-full rounded-full bg-accent text-sm font-semibold text-accent-ink transition hover:brightness-110 active:scale-[0.99]"
           >
-            {table || tables.length === 1 ? "Start ordering" : "Next — pick a table"}
+            {table || tables.length === 1
+              ? t("startOrdering", language)
+              : t("nextPickTable", language)}
           </button>
-          <BackTo onClick={() => setStep("choose")} />
+          <BackTo onClick={() => setStep("choose")} language={language} />
         </div>
       ) : null}
 
@@ -195,7 +210,7 @@ export function OrderModeSheet({
         <div className="flex flex-col gap-5">
           {tables.length === 0 ? (
             <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-3">
-              No tables are open right now. Please ask a server.
+              {t("noTablesOpen", language)}
             </p>
           ) : (
             <ul className="grid grid-cols-4 gap-2 xs:grid-cols-5">
@@ -212,7 +227,7 @@ export function OrderModeSheet({
               ))}
             </ul>
           )}
-          <BackTo onClick={() => setStep("guests")} />
+          <BackTo onClick={() => setStep("guests")} language={language} />
         </div>
       ) : null}
 
@@ -221,16 +236,16 @@ export function OrderModeSheet({
           <input
             value={draft.name}
             onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-            placeholder="Your name, e.g. Aarav"
-            aria-label="Your name"
+            placeholder={t("yourName", language)}
+            aria-label={t("yourName", language)}
             autoComplete="name"
             className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink placeholder:text-ink-3 focus:border-accent focus:outline-none"
           />
           <input
             value={draft.phone}
             onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-            placeholder="Mobile, e.g. 98765 43210"
-            aria-label="Mobile number"
+            placeholder={t("mobile", language)}
+            aria-label={t("mobile", language)}
             inputMode="numeric"
             autoComplete="tel"
             className="h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink placeholder:text-ink-3 focus:border-accent focus:outline-none"
@@ -247,23 +262,23 @@ export function OrderModeSheet({
             onClick={submitPickup}
             className="mt-1 h-12 w-full rounded-full bg-accent text-sm font-semibold text-accent-ink transition hover:brightness-110 active:scale-[0.99]"
           >
-            Start ordering
+            {t("startOrdering", language)}
           </button>
-          <BackTo onClick={() => setStep("choose")} />
+          <BackTo onClick={() => setStep("choose")} language={language} />
         </div>
       ) : null}
     </Sheet>
   );
 }
 
-function BackTo({ onClick }: { onClick: () => void }) {
+function BackTo({ onClick, language }: { onClick: () => void; language: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="text-xs font-medium text-ink-3 underline underline-offset-2"
     >
-      Back
+      {t("back", language)}
     </button>
   );
 }

@@ -40,6 +40,7 @@ export type PastOrder = {
   tableNumber: string | null;
   lines: CartLine[];
   total: number;
+  stage?: OrderStage;
 };
 
 type State = {
@@ -81,6 +82,14 @@ type Action =
   | { type: "note"; lineId: string; note: string }
   | { type: "clear" }
   | { type: "place"; orderId: string; orderDbId: string; tableNumber: string | null }
+  | {
+      type: "placeDirectHistoryOrder";
+      orderId: string;
+      orderDbId: string;
+      tableNumber: string | null;
+      lines: CartLine[];
+      total: number;
+    }
   | { type: "reorder"; lines: CartLine[] }
   | { type: "session"; sessionId: string }
   | { type: "offer"; offer: { code: string; label: string; discount: number } | null }
@@ -96,7 +105,8 @@ type Action =
       tableToken: string | null;
       pickup: PickupDetails | null;
     }
-  | { type: "resetMode" };
+  | { type: "resetMode" }
+  | { type: "updateHistoryStage"; orderDbId: string; stage: OrderStage };
 
 const EMPTY: State = {
   hydrated: false,
@@ -199,6 +209,7 @@ function reducer(state: State, action: Action): State {
         tableNumber: action.tableNumber,
         lines: state.lines,
         total: state.lines.reduce((n, l) => n + l.qty * l.unitPrice, 0),
+        stage: "placed",
       };
       return {
         ...state,
@@ -216,6 +227,31 @@ function reducer(state: State, action: Action): State {
         fromRepeat: false,
       };
     }
+
+    case "placeDirectHistoryOrder": {
+      const past: PastOrder = {
+        code: action.orderId,
+        orderDbId: action.orderDbId,
+        placedAt: Date.now(),
+        mode: state.mode ?? "dinein",
+        tableNumber: action.tableNumber,
+        lines: action.lines,
+        total: action.total,
+        stage: "placed",
+      };
+      return {
+        ...state,
+        history: [past, ...state.history].slice(0, 25),
+      };
+    }
+
+    case "updateHistoryStage":
+      return {
+        ...state,
+        history: state.history.map((o) =>
+          o.orderDbId === action.orderDbId ? { ...o, stage: action.stage } : o,
+        ),
+      };
 
     /* Ordering the same again puts the lines back in the basket rather than
        sending anything — they may want to change the quantity first. */
@@ -303,6 +339,9 @@ type CartApi = {
   ) => void;
   resetMode: () => void;
   reorder: (lines: CartLine[]) => void;
+  reorderDirect: (
+    lines: CartLine[],
+  ) => Promise<{ ok: true; code: string } | { ok: false; message: string }>;
   qtyOf: (itemId: string) => number;
   count: number;
   subtotal: number;
@@ -374,31 +413,48 @@ export function CartProvider({
     dispatch({ type: "session", sessionId: id });
   }, [state.hydrated, state.sessionId]);
 
-  /* Ask the kitchen where the order has got to, until it is served. */
+  /* Ask the kitchen where active orders have got to, until served. */
   useEffect(() => {
-    const id = state.orderDbId;
-    if (!id || !state.stage || state.stage === "served") return;
+    if (!state.hydrated) return;
+
+    const idsToPoll = new Set<string>();
+    if (state.orderDbId && state.stage !== "served") {
+      idsToPoll.add(state.orderDbId);
+    }
+    for (const o of state.history) {
+      if (o.orderDbId && o.stage !== "served") {
+        idsToPoll.add(o.orderDbId);
+      }
+    }
+
+    if (idsToPoll.size === 0) return;
 
     let cancelled = false;
     const tick = async () => {
-      try {
-        const response = await fetch(`/api/order/${id}`, { cache: "no-store" });
-        if (!response.ok || cancelled) return;
-        const body = (await response.json()) as { stage?: OrderStage };
-        if (body.stage && body.stage !== state.stage) {
-          dispatch({ type: "stage", stage: body.stage });
+      for (const id of idsToPoll) {
+        try {
+          const response = await fetch(`/api/order/${id}`, { cache: "no-store" });
+          if (!response.ok || cancelled) continue;
+          const body = (await response.json()) as { stage?: OrderStage };
+          if (body.stage) {
+            if (id === state.orderDbId && body.stage !== state.stage) {
+              dispatch({ type: "stage", stage: body.stage });
+            }
+            dispatch({ type: "updateHistoryStage", orderDbId: id, stage: body.stage });
+          }
+        } catch {
+          /* Offline for a moment — the next tick picks it up. */
         }
-      } catch {
-        /* Offline for a moment — the next tick picks it up. */
       }
     };
 
     const timer = window.setInterval(tick, POLL_MS);
+    void tick();
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [state.orderDbId, state.stage]);
+  }, [state.orderDbId, state.stage, state.history, state.hydrated]);
 
   const add = useCallback(
     (item: MenuItem, optionIds: string[] = []) =>
@@ -454,6 +510,62 @@ export function CartProvider({
   const pickupRef = state.pickup;
   const repeatRef = state.fromRepeat;
   const chosenTable = state.tableToken;
+
+  const reorderDirect = useCallback(
+    async (lines: CartLine[]) => {
+      if (lines.length === 0) {
+        return { ok: false as const, message: "No items to reorder." };
+      }
+      const mode = modeRef ?? "dinein";
+      const result = await placeOrderOnServer({
+        slug,
+        token: mode === "pickup" ? null : (token ?? chosenTable),
+        sessionId: sessionRef,
+        guests: guestsRef,
+        lines: lines.map((line) => ({
+          itemId: line.itemId,
+          qty: line.qty,
+          optionIds: line.optionIds,
+        })),
+        pickup: mode === "pickup" && pickupRef ? pickupRef : undefined,
+        isRepeat: true,
+      });
+
+      if (!result.ok) return result;
+
+      const total = lines.reduce((n, l) => n + l.qty * l.unitPrice, 0);
+      dispatch({
+        type: "placeDirectHistoryOrder",
+        orderId: result.code,
+        orderDbId: result.orderId,
+        tableNumber: chosenTable ?? token ?? null,
+        lines,
+        total,
+      });
+
+      if (!state.orderDbId || state.stage === "served") {
+        dispatch({
+          type: "place",
+          orderId: result.code,
+          orderDbId: result.orderId,
+          tableNumber: chosenTable ?? token ?? null,
+        });
+      }
+
+      return { ok: true as const, code: result.code };
+    },
+    [
+      modeRef,
+      token,
+      chosenTable,
+      sessionRef,
+      guestsRef,
+      pickupRef,
+      slug,
+      state.orderDbId,
+      state.stage,
+    ],
+  );
 
   const placeOrder = useCallback(async () => {
     if (linesRef.length === 0) {
@@ -530,6 +642,7 @@ export function CartProvider({
       setMode,
       resetMode,
       reorder,
+      reorderDirect,
       count,
       subtotal,
       qtyOf: (itemId: string) =>
@@ -556,6 +669,7 @@ export function CartProvider({
     setMode,
     resetMode,
     reorder,
+    reorderDirect,
   ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

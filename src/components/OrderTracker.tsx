@@ -10,7 +10,6 @@ import type { MenuItem, OrderStage } from "@/lib/types";
 
 const STEPS: { id: OrderStage; label: string; hint: string }[] = [
   { id: "placed", label: "Sent to kitchen", hint: "Ticket printed" },
-  { id: "accepted", label: "Accepted", hint: "Chef has your order" },
   { id: "preparing", label: "Cooking", hint: "On the fire now" },
   { id: "ready", label: "Ready", hint: "Coming to your table" },
   { id: "served", label: "Served", hint: "Enjoy your meal" },
@@ -28,12 +27,13 @@ export function OrderTracker({
   /** The table this order belongs to. Null for a collection order. */
   token: string | null;
 }) {
-  const { state, resetOrder, reorder } = useCart();
+  const { state, resetOrder, reorderDirect } = useCart();
   const notify = useToast();
   const [checkingOut, setCheckingOut] = useState(false);
   if (!state.stage) return null;
 
-  const current = STEPS.findIndex((s) => s.id === state.stage);
+  const activeStage = state.stage === "accepted" ? "placed" : state.stage;
+  const current = Math.max(0, STEPS.findIndex((s) => s.id === activeStage));
   const total = state.placedLines.reduce((n, l) => n + l.qty * l.unitPrice, 0);
   const isReady = state.stage === "ready" || state.stage === "served";
 
@@ -129,9 +129,13 @@ export function OrderTracker({
               {/* Same again, straight from the ticket they are looking at. */}
               <button
                 type="button"
-                onClick={() => {
-                  reorder([line]);
-                  notify(`${line.name} added to your order`, "good");
+                onClick={async () => {
+                  const res = await reorderDirect([line]);
+                  if (res.ok) {
+                    notify(`Order ${res.code} sent to kitchen`, "good");
+                  } else {
+                    notify(res.message);
+                  }
                 }}
                 className="shrink-0 rounded-full border border-accent px-2.5 py-1 text-[0.625rem] font-semibold text-accent transition active:scale-95 hover:bg-accent-soft"
               >

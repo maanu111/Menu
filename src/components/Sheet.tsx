@@ -35,7 +35,7 @@ export function Sheet({
 }: {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title: ReactNode;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
@@ -104,7 +104,10 @@ export function Sheet({
   /* Sheets only ever open from a tap, so the DOM exists by the time this runs. */
   if (!open || typeof document === "undefined") return null;
 
-  const titleId = `sheet-${title.replace(/\W+/g, "-").toLowerCase()}`;
+  const titleId =
+    typeof title === "string"
+      ? `sheet-${title.replace(/\W+/g, "-").toLowerCase()}`
+      : "sheet-dialog";
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">

@@ -13,6 +13,7 @@ import { CallWaiterSheet, useWaiterCooldown } from "./CallWaiterSheet";
 import { Sheet } from "./Sheet";
 import { useCart, billFor } from "@/lib/cart-store";
 import { clsx, money } from "@/lib/format";
+import { t, stageText } from "@/lib/ui-translations";
 import type {
   Banner,
   Category,
@@ -20,14 +21,6 @@ import type {
   Restaurant,
   TableInfo,
 } from "@/lib/types";
-
-const STAGE_TEXT: Record<string, string> = {
-  placed: "Sent to kitchen",
-  accepted: "Accepted",
-  preparing: "Cooking",
-  ready: "Ready",
-  served: "Served",
-};
 
 export function MenuShell({
   restaurant,
@@ -83,13 +76,13 @@ export function MenuShell({
         language={language}
       />
 
-      <OrderModeSheet restaurant={restaurant} table={table} tables={tables} />
+      <OrderModeSheet restaurant={restaurant} table={table} tables={tables} language={language} />
 
       <main className="mx-auto w-full max-w-140 px-4 sm:px-6">
         {forPickup ? (
-          <PickupStrip restaurant={restaurant} />
+          <PickupStrip restaurant={restaurant} language={language} />
         ) : seatedAt ? (
-          <SeatStrip number={seatedAt.number} />
+          <SeatStrip number={seatedAt.number} language={language} />
         ) : null}
 
         {restaurant.menuNote ? (
@@ -133,7 +126,7 @@ export function MenuShell({
               )}
             />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-              {STAGE_TEXT[state.stage ?? ""]}
+              {stageText(state.stage ?? "", language)}
             </span>
             <span className="num shrink-0 text-xs text-ink-3">{state.orderId}</span>
             <svg
@@ -162,7 +155,7 @@ export function MenuShell({
             type="button"
             onClick={() => setWaiterOpen(true)}
             aria-label={
-              cooldown > 0 ? `Staff called, ${cooldown} seconds left` : "Call staff"
+              cooldown > 0 ? `Staff called, ${cooldown} seconds left` : t("staff", language)
             }
             className={clsx(
               "flex h-12 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold transition active:scale-95",
@@ -183,7 +176,7 @@ export function MenuShell({
             {cooldown > 0 ? (
               <span className="num text-xs">{cooldown}s</span>
             ) : (
-              <span>Staff</span>
+              <span>{t("staff", language)}</span>
             )}
           </button>
           ) : null}
@@ -198,13 +191,13 @@ export function MenuShell({
                 <span className="num grid size-5 place-items-center rounded-full bg-accent-ink/20 text-xs">
                   {count}
                 </span>
-                View order
+                {t("viewOrder", language)}
               </span>
               <span className="num">{money(bill.total)}</span>
             </button>
           ) : (
             <p className="flex h-12 min-w-0 flex-1 items-center justify-center px-4 text-sm text-ink-3">
-              {orderLive ? "Order in progress" : "Add a dish to start"}
+              {orderLive ? t("orderInProgress", language) : t("addDishToStart", language)}
             </p>
           )}
 
@@ -216,9 +209,9 @@ export function MenuShell({
       <Sheet
         open={cartOpen}
         onClose={() => setCartOpen(false)}
-        title="Your order"
+        title={t("yourOrder", language)}
         description={
-          forPickup ? "To collect" : seatedAt ? `Table ${seatedAt.number}` : ""
+          forPickup ? t("toCollect", language) : seatedAt ? `${t("table", language)} ${seatedAt.number}` : ""
         }
       >
         <OrderPanel
@@ -226,6 +219,7 @@ export function MenuShell({
           tableNumber={seatedAt?.number ?? null}
           restaurant={restaurant}
           slug={restaurant.slug}
+          language={language}
           onPlaced={() => {
             setCartOpen(false);
             setTrackerOpen(true);
@@ -236,22 +230,26 @@ export function MenuShell({
       <Sheet
         open={trackerOpen}
         onClose={() => setTrackerOpen(false)}
-        title="Order status"
-        description="Updates on its own."
-        footer={
-          state.history.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                setTrackerOpen(false);
-                setHistoryOpen(true);
-              }}
-              className="w-full rounded-full border border-line py-3 text-sm font-semibold text-ink transition hover:bg-surface-2 active:scale-[0.99]"
-            >
-              Your past orders
-            </button>
-          ) : null
+        title={
+          <div className="flex items-center justify-between gap-2 pr-1">
+            <span className="text-lg font-semibold tracking-tight text-ink">
+              {t("orderStatus", language)}
+            </span>
+            {state.history.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setTrackerOpen(false);
+                  setHistoryOpen(true);
+                }}
+                className="rounded-full bg-nonveg px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-95"
+              >
+                {t("yourPastOrders", language)}
+              </button>
+            ) : null}
+          </div>
         }
+        description={t("updatesOnItsOwn", language)}
       >
         <OrderTracker
           items={items}
@@ -264,6 +262,7 @@ export function MenuShell({
       <OrderHistorySheet
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
+        language={language}
       />
 
       {seated && seatedAt ? (
@@ -284,25 +283,25 @@ export function MenuShell({
  * restaurant's own words about when it will be ready and where to come.
  */
 /** Which table the kitchen is cooking for, however it was chosen. */
-function SeatStrip({ number }: { number: string }) {
+function SeatStrip({ number, language }: { number: string; language: string }) {
   const { resetMode } = useCart();
   return (
     <div className="mt-3 flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5">
       <p className="min-w-0 flex-1 text-sm font-semibold text-ink">
-        Table <span className="num">{number}</span>
+        {t("table", language)} <span className="num">{number}</span>
       </p>
       <button
         type="button"
         onClick={resetMode}
         className="shrink-0 text-xs font-medium text-ink-3 underline underline-offset-2 hover:text-ink"
       >
-        Change
+        {t("change", language)}
       </button>
     </div>
   );
 }
 
-function PickupStrip({ restaurant }: { restaurant: Restaurant }) {
+function PickupStrip({ restaurant, language }: { restaurant: Restaurant; language: string }) {
   return (
     <div className="mt-3 rounded-xl border border-line bg-surface-2 px-3.5 py-3">
       <p className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -316,7 +315,7 @@ function PickupStrip({ restaurant }: { restaurant: Restaurant }) {
           <circle cx="6" cy="14.8" r="1.4" stroke="currentColor" strokeWidth="1.5" />
           <circle cx="13.6" cy="14.8" r="1.4" stroke="currentColor" strokeWidth="1.5" />
         </svg>
-        Collecting from {restaurant.name}
+        {t("collectingFrom", language).replace("{name}", restaurant.name)}
       </p>
       {restaurant.pickupNote ? (
         <p className="mt-1 text-xs leading-relaxed text-ink-2">
@@ -325,15 +324,15 @@ function PickupStrip({ restaurant }: { restaurant: Restaurant }) {
       ) : null}
       {restaurant.pickupMin > 0 ? (
         <p className="num mt-1 text-xs text-ink-3">
-          Minimum order ₹{restaurant.pickupMin}
+          {t("minimumOrder", language).replace("{n}", String(restaurant.pickupMin))}
         </p>
       ) : null}
-      <ChangeMode />
+      <ChangeMode language={language} />
     </div>
   );
 }
 
-function ChangeMode() {
+function ChangeMode({ language }: { language: string }) {
   const { resetMode } = useCart();
   return (
     <button
@@ -341,7 +340,7 @@ function ChangeMode() {
       onClick={resetMode}
       className="mt-1.5 text-xs font-medium text-ink-3 underline underline-offset-2 hover:text-ink"
     >
-      Eating in instead?
+      {t("eatingInInstead", language)}
     </button>
   );
 }

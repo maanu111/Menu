@@ -20,6 +20,7 @@ export function OrderPanel({
   slug,
   onPlaced,
   compact = false,
+  language = "",
 }: {
   gstPercent: number;
   /** The table they are sitting at, when dining in. */
@@ -28,6 +29,8 @@ export function OrderPanel({
   slug: string;
   onPlaced?: () => void;
   compact?: boolean;
+  /** The language the menu is being shown in right now. */
+  language?: string;
 }) {
   const { state, inc, dec, remove, clear, subtotal, count, placeOrder, resetMode } =
     useCart();
@@ -180,7 +183,7 @@ export function OrderPanel({
           <p className="num text-xs text-ink-2">{state.pickup?.phone}</p>
         </div>
       ) : (
-        <GuestCount />
+        <GuestCount language={language} />
       )}
 
       {error ? (

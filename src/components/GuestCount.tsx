@@ -2,12 +2,13 @@
 
 import { useCart } from "@/lib/cart-store";
 import { clsx } from "@/lib/format";
+import { t } from "@/lib/ui-translations";
 
 /**
  * Asked once, at the moment of ordering. The kitchen uses it for portioning
  * and the owner's reports use it for covers and spend-per-head.
  */
-export function GuestCount() {
+export function GuestCount({ language }: { language: string }) {
   const { state, setGuests } = useCart();
   const guests = state.guests;
 
@@ -35,8 +36,8 @@ export function GuestCount() {
       </svg>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[0.8125rem] font-medium text-ink">How many people?</p>
-        <p className="text-[0.6875rem] text-ink-3">Helps us portion and serve</p>
+        <p className="text-[0.8125rem] font-medium text-ink">{t("howManyPeople", language)}</p>
+        <p className="text-[0.6875rem] text-ink-3">{t("helpsUsPortion", language)}</p>
       </div>
 
       <div className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-line bg-surface px-1">
