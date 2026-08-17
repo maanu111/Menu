@@ -121,7 +121,7 @@ const en: UIStrings = {
   toCollect: "To collect",
   orderStatus: "Order status",
   updatesOnItsOwn: "Updates on its own.",
-  yourPastOrders: "Your past orders",
+  yourPastOrders: "Order history",
 
   sentToKitchen: "Sent to kitchen",
   accepted: "Accepted",

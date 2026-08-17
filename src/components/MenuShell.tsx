@@ -6,6 +6,7 @@ import { MenuBrowser } from "./MenuBrowser";
 import { BannerRail } from "./BannerRail";
 import { OrderModeSheet } from "./OrderModeSheet";
 import { OrderHistorySheet } from "./OrderHistorySheet";
+import { OrderStatusModal } from "./OrderStatusModal";
 import { InstallButton } from "./InstallButton";
 import { OrderPanel } from "./OrderPanel";
 import { OrderTracker } from "./OrderTracker";
@@ -227,41 +228,16 @@ export function MenuShell({
         />
       </Sheet>
 
-      <Sheet
-        open={trackerOpen}
-        onClose={() => setTrackerOpen(false)}
-        title={
-          <div className="flex items-center justify-between gap-2 pr-1">
-            <span className="text-lg font-semibold tracking-tight text-ink">
-              {t("orderStatus", language)}
-            </span>
-            {state.history.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setTrackerOpen(false);
-                  setHistoryOpen(true);
-                }}
-                className="rounded-full bg-nonveg px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-95"
-              >
-                {t("yourPastOrders", language)}
-              </button>
-            ) : null}
-          </div>
-        }
-        description={t("updatesOnItsOwn", language)}
-      >
-        <OrderTracker
-          items={items}
-          onDone={() => setTrackerOpen(false)}
-          slug={restaurant.slug}
-          token={seatedAt?.token ?? null}
-        />
-      </Sheet>
-
-      <OrderHistorySheet
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
+      <OrderStatusModal
+        open={trackerOpen || historyOpen}
+        onClose={() => {
+          setTrackerOpen(false);
+          setHistoryOpen(false);
+        }}
+        initialTab={historyOpen ? "history" : "status"}
+        items={items}
+        slug={restaurant.slug}
+        token={seatedAt?.token ?? null}
         language={language}
       />
 
