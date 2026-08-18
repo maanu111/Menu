@@ -26,6 +26,7 @@ export const WAITER_COOLDOWN_MS = 60_000;
 /* MySQL has no realtime, so the phone asks. Four seconds reads as instant
    to someone sitting at a table, and costs one tiny query per guest. */
 const POLL_MS = 4000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * An order this phone has already sent. Kept on the device rather than behind
@@ -225,33 +226,36 @@ function reducer(state: State, action: Action): State {
           ...legacyLive,
         ]);
         const rawHistory = saved.history ?? [];
-        const history: CheckoutVisit[] = rawHistory.map((item: any, idx: number) => {
-          if (item && item.lines && Array.isArray(item.lines)) {
-            return item as CheckoutVisit;
-          }
-          if (item && item.orders && Array.isArray(item.orders)) {
-            const orders = item.orders as PastOrder[];
+        const now = Date.now();
+        const history: CheckoutVisit[] = rawHistory
+          .map((item: any, idx: number) => {
+            if (item && item.lines && Array.isArray(item.lines)) {
+              return item as CheckoutVisit;
+            }
+            if (item && item.orders && Array.isArray(item.orders)) {
+              const orders = item.orders as PastOrder[];
+              return {
+                id: item.id || `visit-${idx}`,
+                checkedOutAt: item.checkedOutAt || Date.now(),
+                mode: item.mode || "dinein",
+                tableNumber: item.tableNumber || null,
+                lines: orders.flatMap((o) => o.lines),
+                total: item.total || orders.reduce((sum, o) => sum + o.total, 0),
+                ticketCodes: orders.map((o) => o.code),
+              };
+            }
+            const single = item as PastOrder;
             return {
-              id: item.id || `visit-${idx}`,
-              checkedOutAt: item.checkedOutAt || Date.now(),
-              mode: item.mode || "dinein",
-              tableNumber: item.tableNumber || null,
-              lines: orders.flatMap((o) => o.lines),
-              total: item.total || orders.reduce((sum, o) => sum + o.total, 0),
-              ticketCodes: orders.map((o) => o.code),
+              id: `visit-${single.orderDbId || single.code || idx}`,
+              checkedOutAt: single.placedAt || Date.now(),
+              mode: single.mode || "dinein",
+              tableNumber: single.tableNumber || null,
+              lines: single.lines || [],
+              total: single.total || 0,
+              ticketCodes: single.code ? [single.code] : [],
             };
-          }
-          const single = item as PastOrder;
-          return {
-            id: `visit-${single.orderDbId || single.code || idx}`,
-            checkedOutAt: single.placedAt || Date.now(),
-            mode: single.mode || "dinein",
-            tableNumber: single.tableNumber || null,
-            lines: single.lines || [],
-            total: single.total || 0,
-            ticketCodes: single.code ? [single.code] : [],
-          };
-        });
+          })
+          .filter((visit) => now - visit.checkedOutAt < THIRTY_DAYS_MS);
         return {
           ...state,
           ...saved,
