@@ -1,37 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet } from "./Sheet";
 import { AddOnsRail } from "./AddOnsRail";
 import { DetailsCard } from "./DetailsCard";
 import { DietMark } from "./DietMark";
 import { useToast } from "./Toaster";
-import { useCart } from "@/lib/cart-store";
+import { useCart, type PastOrder, type CheckoutVisit } from "@/lib/cart-store";
 import { clsx, money } from "@/lib/format";
 import { t, stageText, type UIStrings } from "@/lib/ui-translations";
-import type { CartLine, MenuItem, OrderStage } from "@/lib/types";
+import type { CartLine, MenuItem } from "@/lib/types";
 
 function when(at: number) {
-  const d = new Date(at);
+  const date = new Date(at);
   const today = new Date();
-  const sameDay = d.toDateString() === today.toDateString();
-  if (sameDay) {
-    return `Today, ${d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+  if (date.toDateString() === today.toDateString()) {
+    return `Today, ${date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
   }
-  return d.toLocaleDateString("en-IN", {
+  return date.toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
-
-const STEPS: { id: OrderStage; labelKey: keyof UIStrings; hint: string }[] = [
-  { id: "placed", labelKey: "sentToKitchen", hint: "Ticket printed" },
-  { id: "preparing", labelKey: "cooking", hint: "On the fire now" },
-  { id: "ready", labelKey: "ready", hint: "Coming to your table" },
-  { id: "served", labelKey: "served", hint: "Enjoy your meal" },
-];
 
 const TRACK_STEPS = [
   { id: "placed", key: "sentToKitchen" },
@@ -40,71 +35,41 @@ const TRACK_STEPS = [
   { id: "served", key: "served" },
 ] as const;
 
-function OrderStatusProgressBar({
-  stage,
-  language,
-}: {
-  stage?: string;
-  language: string;
-}) {
-  if (!stage) return null;
-  const activeStage = stage === "accepted" ? "placed" : stage;
-  const currentIndex = Math.max(0, TRACK_STEPS.findIndex((s) => s.id === activeStage));
+function OrderStatusProgressBar({ stage, language }: { stage?: string; language: string }) {
+  const activeStage = stage === "accepted" ? "placed" : stage ?? "placed";
+  const currentIndex = Math.max(0, TRACK_STEPS.findIndex((step) => step.id === activeStage));
 
   return (
-    <div className="border-b border-line bg-surface-2/60 px-3 py-3">
+    <div className="border-b border-line bg-surface-2/40 px-3 py-2.5">
       <div className="flex items-start justify-between">
-        {TRACK_STEPS.map((step, i) => {
-          const isDone = i < currentIndex;
-          const isActive = i === currentIndex;
+        {TRACK_STEPS.map((step, index) => {
+          const done = index < currentIndex;
+          const active = index === currentIndex;
           return (
-            <div
-              key={step.id}
-              className="relative flex flex-1 flex-col items-center text-center"
-            >
-              {/* Connecting line */}
-              {i < TRACK_STEPS.length - 1 ? (
-                <div
+            <div key={step.id} className="relative flex flex-1 flex-col items-center text-center">
+              {index < TRACK_STEPS.length - 1 ? (
+                <span
+                  aria-hidden="true"
                   className={clsx(
-                    "absolute top-2.5 left-[50%] right-[-50%] h-0.5 z-0 transition",
-                    isDone ? "bg-veg" : "bg-line",
+                    "absolute top-2 left-[50%] right-[-50%] z-0 h-0.5",
+                    done ? "bg-veg" : "bg-line",
                   )}
                 />
               ) : null}
-
-              {/* Circle dot */}
-              <div
-                className={clsx(
-                  "relative z-10 grid size-5 place-items-center rounded-full border-2 text-[0.625rem] transition",
-                  isDone && "border-veg bg-veg text-white",
-                  isActive && "border-nonveg bg-nonveg text-white font-bold",
-                  !isDone && !isActive && "border-line bg-surface text-ink-3",
-                )}
-              >
-                {isDone ? (
-                  <svg viewBox="0 0 12 12" className="size-2.5" fill="none">
-                    <path
-                      d="M2.5 6.2l2.3 2.3L9.5 3.8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  <span>{i + 1}</span>
-                )}
-              </div>
-
-              {/* Label */}
               <span
                 className={clsx(
-                  "mt-1 text-[0.625rem] font-medium leading-tight px-0.5",
-                  isActive
-                    ? "text-nonveg font-semibold"
-                    : isDone
-                      ? "text-ink-2"
-                      : "text-ink-3",
+                  "relative z-10 grid size-4.5 place-items-center rounded-full border-2 text-[0.625rem]",
+                  done && "border-veg bg-veg text-white",
+                  active && "border-nonveg bg-nonveg font-bold text-white",
+                  !done && !active && "border-line bg-surface text-ink-3",
+                )}
+              >
+                {done ? "✓" : index + 1}
+              </span>
+              <span
+                className={clsx(
+                  "mt-1 px-0.5 text-[0.625rem] font-medium leading-tight",
+                  active ? "font-semibold text-nonveg" : done ? "text-ink-2" : "text-ink-3",
                 )}
               >
                 {t(step.key as keyof UIStrings, language)}
@@ -121,7 +86,7 @@ export function OrderStatusModal({
   open,
   onClose,
   initialTab = "status",
-  items,
+  items = [],
   slug,
   token,
   language = "en",
@@ -129,43 +94,70 @@ export function OrderStatusModal({
   open: boolean;
   onClose: () => void;
   initialTab?: "status" | "history";
-  items: MenuItem[];
+  items?: MenuItem[];
   slug: string;
   token: string | null;
   language?: string;
 }) {
-  const { state, reorderDirect, resetOrder } = useCart();
+  const { state, reorderDirect, checkout } = useCart();
   const notify = useToast();
   const [tab, setTab] = useState<"status" | "history">(initialTab);
   const [checkingOut, setCheckingOut] = useState(false);
 
-  /* Synchronize tab when initialTab changes or when order gets served */
   useEffect(() => {
-    if (open) {
-      if (state.stage === "served" || !state.stage) {
-        setTab("history");
-      } else {
-        setTab(initialTab);
-      }
+    if (!open) {
+      setCheckingOut(false);
     }
-  }, [open, initialTab, state.stage]);
+  }, [open]);
 
   async function handleReorder(lines: CartLine[]) {
-    const res = await reorderDirect(lines);
-    if (res.ok) {
-      notify(`Order ${res.code} sent to kitchen`, "good");
-    } else {
-      notify(res.message);
+    setCheckingOut(false);
+    const result = await reorderDirect(lines);
+    if (result.ok) {
+      setTab("status");
+      notify(`Order ${result.code} sent to kitchen`, "good");
+    } else notify(result.message);
+  }
+
+  async function handleCheckout() {
+    setCheckingOut(true);
+    try {
+      if (token) {
+        const response = await fetch("/api/call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug,
+            token,
+            reason: "checkout",
+            sessionId: state.sessionId,
+          }),
+        });
+        if (!response.ok) throw new Error("Checkout request failed");
+      }
+
+      checkout();
+      setTab("history");
+      notify(
+        token ? "The counter has been told — someone is on the way" : "Order moved to history",
+        "good",
+      );
+    } catch {
+      notify("Couldn't request checkout. Please try again.");
+    } finally {
+      setCheckingOut(false);
     }
   }
 
-  const activeStage = state.stage === "accepted" ? "placed" : state.stage;
-  const current = Math.max(0, STEPS.findIndex((s) => s.id === activeStage));
-  const total = state.placedLines.reduce((n, l) => n + l.qty * l.unitPrice, 0);
+  const activeOrders = state.activeOrders;
+  const combinedTotal = activeOrders.reduce((sum, order) => sum + order.total, 0);
+  const combinedItems = activeOrders.reduce(
+    (sum, order) => sum + order.lines.reduce((lineSum, line) => lineSum + line.qty, 0),
+    0,
+  );
 
-  /* Header Title: Order status (Left) | Order history (Very Right) */
-  const headerTitle = (
-    <div className="flex items-center justify-between w-full pr-2 -mb-1">
+  const header = (
+    <div className="-mb-1 flex w-full items-center justify-between pr-2">
       <button
         type="button"
         onClick={() => setTab("status")}
@@ -175,292 +167,252 @@ export function OrderStatusModal({
         )}
       >
         {t("orderStatus", language)}
-        {tab === "status" ? (
-          <span className="absolute bottom-0 inset-x-0 h-0.5 bg-nonveg rounded-full" />
-        ) : null}
+        {tab === "status" ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" /> : null}
       </button>
-
       <button
         type="button"
         onClick={() => setTab("history")}
         className={clsx(
-          "relative pb-2.5 text-base font-semibold transition ml-auto pr-2",
+          "relative ml-auto pb-2.5 pr-2 text-base font-semibold transition",
           tab === "history" ? "text-ink" : "text-ink-3 hover:text-ink-2",
         )}
       >
         {t("yourPastOrders", language)}
-        {tab === "history" ? (
-          <span className="absolute bottom-0 inset-x-0 h-0.5 bg-nonveg rounded-full" />
-        ) : null}
+        {tab === "history" ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" /> : null}
       </button>
     </div>
   );
 
-  /* Floating Sticky Checkout Footer */
-  const floatingCheckoutFooter =
-    token &&
-    ((tab === "status" && state.stage && state.stage !== "served") ||
-      (tab === "history" && state.history.length > 0)) ? (
-      <button
-        type="button"
-        disabled={checkingOut}
-        onClick={() => {
-          setCheckingOut(true);
-          notify("The counter has been told — someone is on the way", "good");
-          void fetch("/api/call", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              slug,
-              token,
-              reason: "checkout",
-              sessionId: state.sessionId,
-            }),
-          }).catch(() => setCheckingOut(false));
-        }}
-        className="h-12 w-full rounded-full bg-nonveg text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60 shadow-lg"
-      >
-        {checkingOut ? "The counter knows" : "Checkout"}
-      </button>
+  const footer =
+    tab === "status" && activeOrders.length > 0 ? (
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-baseline justify-between px-1">
+          <span>
+            <span className="block text-base font-bold text-ink">Total</span>
+            <span className="num text-xs text-ink-3">
+              {combinedItems} {combinedItems === 1 ? "item" : "items"} · {state.guests} {state.guests === 1 ? "guest" : "guests"}
+            </span>
+          </span>
+          <span className="num text-xl font-bold text-ink">{money(combinedTotal)}</span>
+        </div>
+        <button
+          type="button"
+          disabled={checkingOut}
+          onClick={() => void handleCheckout()}
+          className="h-11 w-full rounded-full bg-nonveg text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
+        >
+          {checkingOut ? "Requesting checkout…" : "Checkout"}
+        </button>
+      </div>
     ) : null;
 
   return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title={headerTitle}
-      footer={floatingCheckoutFooter}
-    >
-      {tab === "status" && state.stage && state.stage !== "served" ? (
-        <div className="flex flex-col gap-4">
-          {/* Active order card matching client screenshot */}
-          <div
-            className="overflow-hidden rounded-2xl border border-line bg-surface"
-            style={{ boxShadow: "var(--shadow)" }}
-          >
-            {/* Order header row */}
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-              <div className="min-w-0">
-                <p className="eyebrow text-ink-3 text-[0.6875rem] uppercase tracking-wider font-semibold">ORDER</p>
-                <p className="num text-xl font-bold text-ink">{state.orderId}</p>
-              </div>
-              <span className="rounded-full bg-nonveg/10 px-3 py-1 text-xs font-semibold text-nonveg">
-                {t(STEPS[current]?.labelKey ?? "sentToKitchen", language)}
-              </span>
-            </div>
-
-            {/* Timeline steps */}
-            <ol className="flex flex-col px-5 py-4">
-              {STEPS.map((step, i) => {
-                const done = i < current;
-                const active = i === current;
-                return (
-                  <li key={step.id} className="flex gap-3.5">
-                    <div className="flex flex-col items-center">
-                      <span
-                        aria-hidden="true"
-                        className={clsx(
-                          "grid size-5 shrink-0 place-items-center rounded-full border-2 transition",
-                          done && "border-veg bg-veg text-white",
-                          active && "border-nonveg bg-nonveg text-white",
-                          !done && !active && "border-line bg-surface text-transparent",
-                        )}
-                      >
-                        {done ? (
-                          <svg viewBox="0 0 12 12" className="size-2.5" fill="none">
-                            <path
-                              d="M2.5 6.2l2.3 2.3L9.5 3.8"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        ) : active ? (
-                          <span className="size-1.5 rounded-full bg-white" />
-                        ) : null}
-                      </span>
-                      {i < STEPS.length - 1 ? (
-                        <span
-                          aria-hidden="true"
-                          className={clsx(
-                            "w-0.5 flex-1 transition my-0.5",
-                            done ? "bg-veg" : "bg-line",
-                          )}
-                        />
-                      ) : null}
-                    </div>
-
-                    <div className={clsx("pb-4", i === STEPS.length - 1 && "pb-0")}>
-                      <p
-                        className={clsx(
-                          "text-sm leading-5 font-semibold",
-                          active ? "text-ink" : done ? "text-ink-2" : "text-ink-3 font-normal",
-                        )}
-                      >
-                        {t(step.labelKey, language)}
-                      </p>
-                      {active ? (
-                        <p className="mt-0.5 text-xs text-ink-3">{step.hint}</p>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-
-            {/* Ordered items */}
-            <div className="border-t border-line px-5 py-4">
-              <ul className="flex flex-col gap-2.5">
-                {state.placedLines.map((line) => (
-                  <li key={line.lineId} className="flex items-center gap-2.5 text-sm">
-                    <span className="min-w-0 flex-1 truncate text-ink">
-                      <span className="num font-medium text-ink-2">{line.qty} × </span>
-                      {line.name}
-                    </span>
-                    <span className="num shrink-0 font-semibold text-ink">
-                      {money(line.qty * line.unitPrice)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleReorder([line])}
-                      className="shrink-0 rounded-full border border-nonveg px-3 py-1 text-xs font-semibold text-nonveg transition active:scale-95 hover:bg-nonveg/10"
-                    >
-                      Reorder
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Total box */}
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3">
-                <span className="text-sm font-semibold text-ink">Total</span>
-                <span className="num text-base font-bold text-ink">
-                  {money(total)}
-                </span>
-              </div>
-              <p className="num mt-2 text-xs text-ink-3">
-                {state.guests} {state.guests === 1 ? "guest" : "guests"} · pay at the counter
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom section: Anything else? */}
-          <div className="mt-2 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-bold text-ink">Anything else?</h3>
-              <span className="text-xs text-ink-3">Goes on the same bill</span>
-            </div>
-            <AddOnsRail items={items} />
-            <DetailsCard />
-          </div>
-        </div>
-      ) : (
-        /* History tab */
-        <div className="flex flex-col gap-4">
-          {state.history.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-center">
-              <span aria-hidden="true" className="text-3xl">
-                🧾
-              </span>
-              <p className="text-sm font-semibold text-ink">No orders yet</p>
-              <p className="max-w-[15rem] text-sm text-ink-2">
-                Once you order, it stays here on your phone so you can have the
-                same again next time.
-              </p>
-            </div>
-          ) : (
+    <Sheet open={open} onClose={onClose} title={header} footer={footer}>
+      {tab === "status" ? (
+        activeOrders.length > 0 ? (
+          <div className="flex flex-col gap-4">
             <ul className="flex flex-col gap-4">
-              {state.history.map((order) => {
-                const isReadyOrServed =
-                  order.stage === "ready" || order.stage === "served";
-                return (
-                  <li
-                    key={order.code + order.placedAt}
-                    className="overflow-hidden rounded-xl border border-line bg-surface"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 border-b border-line px-3.5 py-2.5">
-                      <span className="num text-sm font-semibold text-ink">
-                        {order.code}
-                      </span>
-                      {order.stage ? (
-                        <span
-                          className={clsx(
-                            "rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold",
-                            isReadyOrServed
-                              ? "bg-veg/12 text-veg"
-                              : "bg-nonveg/10 text-nonveg",
-                          )}
-                        >
-                          {stageText(order.stage, language)}
-                        </span>
-                      ) : null}
-                      <span className="text-xs text-ink-3">{when(order.placedAt)}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleReorder(order.lines)}
-                        className="ml-auto shrink-0 rounded-full bg-nonveg px-3 py-1.5 text-[0.6875rem] font-semibold text-white transition active:scale-95 hover:brightness-110"
-                      >
-                        Reorder all
-                      </button>
-                    </div>
-
-                    {/* Horizontal 4-step progress bar */}
-                    <OrderStatusProgressBar stage={order.stage} language={language} />
-
-                    <ul className="flex flex-col divide-y divide-line">
-                      {order.lines.map((line) => (
-                        <li
-                          key={line.lineId}
-                          className="flex items-center gap-2.5 px-3.5 py-2.5"
-                        >
-                          <DietMark diet={line.diet} className="mt-0.5 shrink-0" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[0.8125rem] leading-snug text-ink">
-                              {line.name}
-                            </span>
-                            {line.optionLabels.length > 0 ? (
-                              <span className="block text-[0.6875rem] text-ink-3">
-                                {line.optionLabels.join(" · ")}
-                              </span>
-                            ) : null}
-                          </span>
-                          <span className="num shrink-0 text-xs text-ink-3">
-                            {line.qty}×
-                          </span>
-                          <span className="num w-16 shrink-0 text-right text-[0.8125rem] text-ink">
-                            {money(line.qty * line.unitPrice)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleReorder([line])}
-                            className="shrink-0 rounded-full border border-nonveg px-2.5 py-1 text-[0.625rem] font-semibold text-nonveg transition active:scale-95 hover:bg-nonveg/10"
-                          >
-                            Reorder
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <p className="flex items-baseline justify-between border-t border-line px-3.5 py-2.5">
-                      <span className="text-xs text-ink-2">
-                        {order.mode === "pickup"
-                          ? "Collected"
-                          : order.tableNumber
-                            ? `Table ${order.tableNumber}`
-                            : "Dine-in"}
-                      </span>
-                      <span className="num text-sm font-semibold text-ink">
-                        {money(order.total)}
-                      </span>
-                    </p>
-                  </li>
-                );
-              })}
+              {activeOrders.map((order) => (
+                <ActiveOrderCard
+                  key={order.orderDbId || order.code + order.placedAt}
+                  order={order}
+                  language={language}
+                  onReorder={handleReorder}
+                />
+              ))}
             </ul>
-          )}
-        </div>
+
+            {items.length > 0 ? (
+              <div className="mt-1 flex flex-col gap-2.5">
+                <div className="flex items-baseline justify-between px-0.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink">Anything else?</h3>
+                  <span className="text-xs text-ink-3">Goes on the same bill</span>
+                </div>
+                <AddOnsRail items={items} />
+                <DetailsCard />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <EmptyOrders
+            title="No open orders"
+            description="Anything ordered for this table will stay here until checkout."
+          />
+        )
+      ) : (
+        /* History Tab: List of Single-Card Checkout Visits */
+        state.history.length > 0 ? (
+          <ul className="flex flex-col gap-4">
+            {state.history.map((visit) => (
+              <CheckoutVisitCard
+                key={visit.id}
+                visit={visit}
+                language={language}
+                onReorder={handleReorder}
+              />
+            ))}
+          </ul>
+        ) : (
+          <EmptyOrders
+            title="No order history"
+            description="Completed table visits will appear here after checkout."
+          />
+        )
       )}
     </Sheet>
+  );
+}
+
+function ActiveOrderCard({
+  order,
+  language,
+  onReorder,
+}: {
+  order: PastOrder;
+  language: string;
+  onReorder: (lines: CartLine[]) => void;
+}) {
+  const stage = order.stage ?? "placed";
+  const served = stage === "served";
+
+  return (
+    <li className="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+      <div className="flex items-center gap-2 border-b border-line/80 px-4 py-2.5">
+        <span className="num text-base font-bold text-ink">{order.code}</span>
+        <span
+          className={clsx(
+            "rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold",
+            served ? "bg-veg/10 text-veg" : "bg-nonveg/10 text-nonveg",
+          )}
+        >
+          {stageText(stage, language)}
+        </span>
+        <span className="ml-auto text-xs text-ink-3">{when(order.placedAt)}</span>
+      </div>
+
+      <OrderStatusProgressBar stage={stage} language={language} />
+
+      <ul className="flex flex-col divide-y divide-line/60">
+        {order.lines.map((line) => (
+          <li key={line.lineId} className="flex items-center gap-2 px-4 py-2.5">
+            <DietMark diet={line.diet} className="shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-xs text-ink">
+              <span className="font-medium text-ink-2">{line.qty} × </span>
+              {line.name}
+            </span>
+            <span className="num shrink-0 text-xs font-medium text-ink">
+              {money(line.qty * line.unitPrice)}
+            </span>
+            <button
+              type="button"
+              onClick={() => onReorder([line])}
+              className="ml-1.5 shrink-0 rounded-full border border-nonveg/40 px-2 py-0.5 text-[0.625rem] font-semibold text-nonveg transition active:scale-95 hover:bg-nonveg/10"
+            >
+              Reorder
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex items-center justify-between border-t border-line/80 bg-surface-2/30 px-4 py-2.5">
+        <span className="text-xs text-ink-3">
+          {order.mode === "pickup"
+            ? "Collected"
+            : order.tableNumber
+              ? `Table ${order.tableNumber}`
+              : "Dine-in"}
+        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="num text-xs font-bold text-ink">{money(order.total)}</span>
+          <button
+            type="button"
+            onClick={() => onReorder(order.lines)}
+            className="rounded-full bg-nonveg px-3 py-1 text-xs font-semibold text-white transition active:scale-95 hover:brightness-110"
+          >
+            Reorder all
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function CheckoutVisitCard({
+  visit,
+  language,
+  onReorder,
+}: {
+  visit: CheckoutVisit;
+  language: string;
+  onReorder: (lines: CartLine[]) => void;
+}) {
+  return (
+    <li className="overflow-hidden rounded-2xl border border-line border-l-4 border-l-veg bg-surface shadow-xs transition-all">
+      {/* Green Header Badge Strip */}
+      <div className="flex items-center justify-between border-b border-line/60 bg-veg/10 px-4 py-1.5 text-[0.6875rem] font-semibold text-veg">
+        <span>PAST CHECKOUT</span>
+        <span>COMPLETED</span>
+      </div>
+
+      {/* Date & Tickets Row */}
+      <div className="flex items-center gap-2 border-b border-line/80 px-4 py-2.5">
+        <span className="text-xs font-semibold text-ink-2">
+          {when(visit.checkedOutAt)}
+        </span>
+        {visit.ticketCodes && visit.ticketCodes.length > 0 ? (
+          <span className="num rounded-md bg-surface-2 px-2 py-0.5 text-[0.6875rem] font-medium text-ink-3">
+            {visit.ticketCodes.join(", ")}
+          </span>
+        ) : null}
+        <span className="ml-auto text-xs text-ink-3">
+          {visit.mode === "pickup" ? "Collected" : visit.tableNumber ? `Table ${visit.tableNumber}` : "Dine-in"}
+        </span>
+      </div>
+
+      {/* All Ordered Items in this Checkout */}
+      <ul className="flex flex-col divide-y divide-line/60">
+        {visit.lines.map((line, idx) => (
+          <li key={line.lineId || idx} className="flex items-center gap-2 px-4 py-2.5">
+            <DietMark diet={line.diet} className="shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-xs text-ink">
+              <span className="font-medium text-ink-2">{line.qty} × </span>
+              {line.name}
+            </span>
+            <span className="num shrink-0 text-xs font-medium text-ink">
+              {money(line.qty * line.unitPrice)}
+            </span>
+            <button
+              type="button"
+              onClick={() => onReorder([line])}
+              className="ml-1.5 shrink-0 rounded-full border border-nonveg/40 px-2 py-0.5 text-[0.625rem] font-semibold text-nonveg transition active:scale-95 hover:bg-nonveg/10"
+            >
+              Reorder
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* Checkout Total Footer */}
+      <div className="flex items-center justify-between border-t border-line/80 bg-surface-2/30 px-4 py-2.5">
+        <span className="num text-xs font-bold text-ink">Total {money(visit.total)}</span>
+        <button
+          type="button"
+          onClick={() => onReorder(visit.lines)}
+          className="rounded-full bg-nonveg px-3.5 py-1 text-xs font-semibold text-white transition active:scale-95 hover:brightness-110"
+        >
+          Reorder all
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function EmptyOrders({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-10 text-center">
+      <span aria-hidden="true" className="text-3xl">🧾</span>
+      <p className="text-sm font-semibold text-ink">{title}</p>
+      <p className="max-w-[16rem] text-sm text-ink-2">{description}</p>
+    </div>
   );
 }

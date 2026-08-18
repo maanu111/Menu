@@ -1,0 +1,8 @@
+▲ Next.js 16.2.12 (Turbopack)
+- Local:         http://localhost:3004
+- Network:       http://10.85.10.39:3004
+- Environments: .env
+✓ Ready in 719ms
+Creating turbopack project { dir: 'D:\\RESTAU\\MENUQR', testMode: true }
+
+ GET /r/kesar-tandoor/t/798AAD90 200 in 6.1s (next.js: 1979ms, application-code: 4.1s)

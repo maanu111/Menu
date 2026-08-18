@@ -5,11 +5,8 @@ import { Navbar } from "./Navbar";
 import { MenuBrowser } from "./MenuBrowser";
 import { BannerRail } from "./BannerRail";
 import { OrderModeSheet } from "./OrderModeSheet";
-import { OrderHistorySheet } from "./OrderHistorySheet";
 import { OrderStatusModal } from "./OrderStatusModal";
-import { InstallButton } from "./InstallButton";
 import { OrderPanel } from "./OrderPanel";
-import { OrderTracker } from "./OrderTracker";
 import { CallWaiterSheet, useWaiterCooldown } from "./CallWaiterSheet";
 import { Sheet } from "./Sheet";
 import { useCart, billFor } from "@/lib/cart-store";
@@ -60,8 +57,9 @@ export function MenuShell({
      though they still follow the ticket so they know when to walk in. */
   const forPickup = state.mode === "pickup";
   const seated = state.mode === "dinein";
-  const orderLive = Boolean(state.stage);
-  const isReady = state.stage === "ready";
+  const orderLive = state.activeOrders.length > 0;
+  const latestActiveOrder = state.activeOrders[0];
+  const isReady = latestActiveOrder?.stage === "ready" || latestActiveOrder?.stage === "served";
 
   /* The table they scanned, or the one they picked in the popup. */
   const seatedAt =
@@ -127,9 +125,11 @@ export function MenuShell({
               )}
             />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-              {stageText(state.stage ?? "", language)}
+              {latestActiveOrder
+                ? `${stageText(latestActiveOrder.stage ?? "placed", language)} · ${state.activeOrders.length} ${state.activeOrders.length === 1 ? "order" : "orders"}`
+                : ""}
             </span>
-            <span className="num shrink-0 text-xs text-ink-3">{state.orderId}</span>
+            <span className="num shrink-0 text-xs text-ink-3">{latestActiveOrder?.code}</span>
             <svg
               viewBox="0 0 16 16"
               className="size-3.5 shrink-0 text-ink-3"
@@ -201,8 +201,6 @@ export function MenuShell({
               {orderLive ? t("orderInProgress", language) : t("addDishToStart", language)}
             </p>
           )}
-
-          <InstallButton />
         </div>
       </div>
 
@@ -229,6 +227,7 @@ export function MenuShell({
       </Sheet>
 
       <OrderStatusModal
+        key={`${trackerOpen}-${historyOpen}`}
         open={trackerOpen || historyOpen}
         onClose={() => {
           setTrackerOpen(false);

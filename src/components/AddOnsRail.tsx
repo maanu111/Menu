@@ -4,7 +4,7 @@ import { DishImage } from "./DishImage";
 import { useToast } from "./Toaster";
 import { useCart } from "@/lib/cart-store";
 import { money } from "@/lib/format";
-import type { MenuItem } from "@/lib/types";
+import type { CartLine, MenuItem } from "@/lib/types";
 
 /**
  * Shown after the order goes in, never before — the guest has already
@@ -12,16 +12,43 @@ import type { MenuItem } from "@/lib/types";
  * Which dishes qualify is the owner's call, set per item in the dashboard.
  */
 export function AddOnsRail({ items }: { items: MenuItem[] }) {
-  const { state, add } = useCart();
+  const { state, reorderDirect, add } = useCart();
   const notify = useToast();
 
-  const ordered = new Set(state.placedLines.map((l) => l.itemId));
+  const orderedItemIds = new Set(
+    state.activeOrders.flatMap((order) => order.lines.map((line) => line.itemId)),
+  );
   const suggestions = items
-    .filter((item) => item.isAddOn && item.available && !ordered.has(item.id))
+    .filter((item) => item.isAddOn && item.available && !orderedItemIds.has(item.id))
     .sort((a, b) => Number(Boolean(b.bestseller)) - Number(Boolean(a.bestseller)))
     .slice(0, 6);
 
   if (suggestions.length === 0) return null;
+
+  async function handleAddAddOn(item: MenuItem) {
+    const line: CartLine = {
+      lineId: `${item.id}-${Date.now()}`,
+      itemId: item.id,
+      name: item.name,
+      diet: item.diet,
+      unitPrice: item.price,
+      qty: 1,
+      optionIds: [],
+      optionLabels: [],
+    };
+
+    if (state.activeOrders.length > 0 || state.stage) {
+      const res = await reorderDirect([line]);
+      if (res.ok) {
+        notify(`${item.name} sent to kitchen`, "good");
+      } else {
+        notify(res.message);
+      }
+    } else {
+      add(item);
+      notify(`${item.name} added to cart`, "good");
+    }
+  }
 
   return (
     <section aria-labelledby="addons-heading" className="pt-1">
@@ -45,10 +72,7 @@ export function AddOnsRail({ items }: { items: MenuItem[] }) {
               <span className="num text-xs text-ink-2">{money(item.price)}</span>
               <button
                 type="button"
-                onClick={() => {
-                  add(item);
-                  notify(`${item.name} added`, "good");
-                }}
+                onClick={() => void handleAddAddOn(item)}
                 className="rounded-full border border-accent px-2.5 py-1 text-[0.6875rem] font-semibold text-accent transition hover:bg-accent-soft active:scale-95"
               >
                 Add

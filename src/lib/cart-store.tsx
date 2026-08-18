@@ -43,6 +43,16 @@ export type PastOrder = {
   stage?: OrderStage;
 };
 
+export type CheckoutVisit = {
+  id: string;
+  checkedOutAt: number;
+  mode: OrderMode;
+  tableNumber: string | null;
+  lines: CartLine[];
+  total: number;
+  ticketCodes: string[];
+};
+
 type State = {
   hydrated: boolean;
   lines: CartLine[];
@@ -67,8 +77,13 @@ type State = {
   tableToken: string | null;
   /** Set for collection only, before they start browsing. */
   pickup: PickupDetails | null;
-  /** Every order this phone has sent, newest first. */
-  history: PastOrder[];
+  /** Every completed checkout visit on this phone, newest first. */
+  history: CheckoutVisit[];
+  /**
+   * Every ticket still on this table's open bill, newest first. A ticket stays
+   * here even after it has been served; only checkout archives it.
+   */
+  activeOrders: PastOrder[];
   /** Set when anything in the basket came from a past order. */
   fromRepeat: boolean;
 };
@@ -95,6 +110,7 @@ type Action =
   | { type: "offer"; offer: { code: string; label: string; discount: number } | null }
   | { type: "stage"; stage: OrderStage }
   | { type: "resetOrder" }
+  | { type: "checkout" }
   | { type: "callWaiter"; reason: WaiterRequest; at: number }
   | { type: "clearWaiter" }
   | { type: "guests"; count: number }
@@ -125,6 +141,7 @@ const EMPTY: State = {
   tableToken: null,
   pickup: null,
   history: [],
+  activeOrders: [],
   fromRepeat: false,
 };
 
@@ -149,10 +166,101 @@ function buildLine(item: MenuItem, optionIds: string[]): CartLine {
   };
 }
 
+function latestOrderFields(orders: PastOrder[]) {
+  const latest = orders[0];
+  return latest
+    ? {
+        stage: latest.stage ?? "placed",
+        orderId: latest.code,
+        orderDbId: latest.orderDbId,
+        placedLines: latest.lines,
+      }
+    : {
+        stage: null,
+        orderId: null,
+        orderDbId: null,
+        placedLines: [],
+      };
+}
+
+function uniqueOrders(orders: PastOrder[]) {
+  const seen = new Set<string>();
+  return orders.filter((order) => {
+    const key = order.orderDbId || `${order.code}-${order.placedAt}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "hydrate":
-      return { ...state, ...action.payload, hydrated: true };
+      {
+        const saved = action.payload;
+        /* Previous versions put every ticket straight into `history`. Those
+           tickets were still part of the table's live bill, so move them into
+           the new open-session list once, without losing anything. */
+        const legacyLive =
+          saved.orderDbId && saved.orderId
+            ? [
+                {
+                  code: saved.orderId,
+                  orderDbId: saved.orderDbId,
+                  placedAt: Date.now(),
+                  mode: saved.mode ?? "dinein",
+                  tableNumber: saved.tableToken ?? null,
+                  lines: saved.placedLines ?? [],
+                  total: (saved.placedLines ?? []).reduce(
+                    (sum, line) => sum + line.qty * line.unitPrice,
+                    0,
+                  ),
+                  stage: saved.stage ?? "placed",
+                },
+              ]
+            : [];
+        const hasOpenSession = Array.isArray(saved.activeOrders);
+        const activeOrders = uniqueOrders([
+          ...(hasOpenSession ? saved.activeOrders ?? [] : []),
+          ...legacyLive,
+        ]);
+        const rawHistory = saved.history ?? [];
+        const history: CheckoutVisit[] = rawHistory.map((item: any, idx: number) => {
+          if (item && item.lines && Array.isArray(item.lines)) {
+            return item as CheckoutVisit;
+          }
+          if (item && item.orders && Array.isArray(item.orders)) {
+            const orders = item.orders as PastOrder[];
+            return {
+              id: item.id || `visit-${idx}`,
+              checkedOutAt: item.checkedOutAt || Date.now(),
+              mode: item.mode || "dinein",
+              tableNumber: item.tableNumber || null,
+              lines: orders.flatMap((o) => o.lines),
+              total: item.total || orders.reduce((sum, o) => sum + o.total, 0),
+              ticketCodes: orders.map((o) => o.code),
+            };
+          }
+          const single = item as PastOrder;
+          return {
+            id: `visit-${single.orderDbId || single.code || idx}`,
+            checkedOutAt: single.placedAt || Date.now(),
+            mode: single.mode || "dinein",
+            tableNumber: single.tableNumber || null,
+            lines: single.lines || [],
+            total: single.total || 0,
+            ticketCodes: single.code ? [single.code] : [],
+          };
+        });
+        return {
+          ...state,
+          ...saved,
+          history,
+          activeOrders,
+          ...latestOrderFields(activeOrders),
+          hydrated: true,
+        };
+      }
 
     case "add": {
       const line = buildLine(action.item, action.optionIds);
@@ -213,15 +321,11 @@ function reducer(state: State, action: Action): State {
       };
       return {
         ...state,
-        /* Newest first, and capped: a phone that eats here every week should
-           not carry a year of receipts around. */
-        history: [past, ...state.history].slice(0, 25),
-        /* Everyone watches their ticket move, in the room or not: a guest
-           waiting to collect wants to know when to walk over. */
-        stage: "placed",
-        orderId: action.orderId,
-        orderDbId: action.orderDbId,
-        placedLines: state.lines,
+        /* A kitchen ticket belongs to the current table session until the
+           guest checks out. It is not order history merely because it has
+           been served. */
+        activeOrders: [past, ...state.activeOrders],
+        ...latestOrderFields([past, ...state.activeOrders]),
         lines: [],
         offer: null,
         fromRepeat: false,
@@ -241,17 +345,18 @@ function reducer(state: State, action: Action): State {
       };
       return {
         ...state,
-        history: [past, ...state.history].slice(0, 25),
+        activeOrders: [past, ...state.activeOrders],
+        ...latestOrderFields([past, ...state.activeOrders]),
       };
     }
 
     case "updateHistoryStage":
-      return {
-        ...state,
-        history: state.history.map((o) =>
+      {
+        const activeOrders = state.activeOrders.map((o) =>
           o.orderDbId === action.orderDbId ? { ...o, stage: action.stage } : o,
-        ),
-      };
+        );
+        return { ...state, activeOrders, ...latestOrderFields(activeOrders) };
+      }
 
     /* Ordering the same again puts the lines back in the basket rather than
        sending anything — they may want to change the quantity first. */
@@ -272,17 +377,51 @@ function reducer(state: State, action: Action): State {
       return { ...state, offer: action.offer };
 
     case "stage":
-      return state.stage ? { ...state, stage: action.stage } : state;
+      if (!state.orderDbId) return state;
+      {
+        const activeOrders = state.activeOrders.map((order) =>
+          order.orderDbId === state.orderDbId
+            ? { ...order, stage: action.stage }
+            : order,
+        );
+        return { ...state, activeOrders, ...latestOrderFields(activeOrders) };
+      }
 
     case "resetOrder":
       return {
         ...state,
-        stage: null,
-        orderId: null,
-        orderDbId: null,
-        placedLines: [],
+        activeOrders: [],
+        ...latestOrderFields([]),
         customer: null,
       };
+
+    case "checkout": {
+      if (state.activeOrders.length === 0) return state;
+      const allLines = state.activeOrders.flatMap((order) => order.lines);
+      const total = state.activeOrders.reduce((sum, order) => sum + order.total, 0);
+      const ticketCodes = state.activeOrders.map((order) => order.code);
+      const mode = state.activeOrders[0]?.mode ?? "dinein";
+      const tableNumber = state.activeOrders[0]?.tableNumber ?? null;
+
+      const newVisit: CheckoutVisit = {
+        id: `checkout-${Date.now()}`,
+        checkedOutAt: Date.now(),
+        mode,
+        tableNumber,
+        lines: allLines,
+        total,
+        ticketCodes,
+      };
+
+      return {
+        ...state,
+        history: [newVisit, ...state.history].slice(0, 20),
+        activeOrders: [],
+        ...latestOrderFields([]),
+        customer: null,
+        fromRepeat: false,
+      };
+    }
 
     case "callWaiter":
       return { ...state, waiterCalledAt: action.at, waiterReason: action.reason };
@@ -326,6 +465,7 @@ type CartApi = {
     { ok: true; code: string } | { ok: false; message: string }
   >;
   resetOrder: () => void;
+  checkout: () => void;
   callWaiter: (reason: WaiterRequest) => void;
   clearWaiter: () => void;
   applyOffer: (offer: { code: string; label: string; discount: number }) => void;
@@ -396,6 +536,7 @@ export function CartProvider({
           tableToken: state.tableToken,
           pickup: state.pickup,
           history: state.history,
+          activeOrders: state.activeOrders,
           fromRepeat: state.fromRepeat,
         }),
       );
@@ -413,15 +554,12 @@ export function CartProvider({
     dispatch({ type: "session", sessionId: id });
   }, [state.hydrated, state.sessionId]);
 
-  /* Ask the kitchen where active orders have got to, until served. */
+  /* Ask the kitchen where every ticket on the open table bill has got to. */
   useEffect(() => {
     if (!state.hydrated) return;
 
     const idsToPoll = new Set<string>();
-    if (state.orderDbId && state.stage !== "served") {
-      idsToPoll.add(state.orderDbId);
-    }
-    for (const o of state.history) {
+    for (const o of state.activeOrders) {
       if (o.orderDbId && o.stage !== "served") {
         idsToPoll.add(o.orderDbId);
       }
@@ -437,9 +575,6 @@ export function CartProvider({
           if (!response.ok || cancelled) continue;
           const body = (await response.json()) as { stage?: OrderStage };
           if (body.stage) {
-            if (id === state.orderDbId && body.stage !== state.stage) {
-              dispatch({ type: "stage", stage: body.stage });
-            }
             dispatch({ type: "updateHistoryStage", orderDbId: id, stage: body.stage });
           }
         } catch {
@@ -454,7 +589,7 @@ export function CartProvider({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [state.orderDbId, state.stage, state.history, state.hydrated]);
+  }, [state.activeOrders, state.hydrated]);
 
   const add = useCallback(
     (item: MenuItem, optionIds: string[] = []) =>
@@ -473,6 +608,7 @@ export function CartProvider({
   );
   const clear = useCallback(() => dispatch({ type: "clear" }), []);
   const resetOrder = useCallback(() => dispatch({ type: "resetOrder" }), []);
+  const checkout = useCallback(() => dispatch({ type: "checkout" }), []);
   const clearWaiter = useCallback(() => dispatch({ type: "clearWaiter" }), []);
   const applyOffer = useCallback(
     (offer: { code: string; label: string; discount: number }) =>
@@ -543,15 +679,6 @@ export function CartProvider({
         total,
       });
 
-      if (!state.orderDbId || state.stage === "served") {
-        dispatch({
-          type: "place",
-          orderId: result.code,
-          orderDbId: result.orderId,
-          tableNumber: chosenTable ?? token ?? null,
-        });
-      }
-
       return { ok: true as const, code: result.code };
     },
     [
@@ -562,8 +689,6 @@ export function CartProvider({
       guestsRef,
       pickupRef,
       slug,
-      state.orderDbId,
-      state.stage,
     ],
   );
 
@@ -633,6 +758,7 @@ export function CartProvider({
       clear,
       placeOrder,
       resetOrder,
+      checkout,
       callWaiter,
       clearWaiter,
       applyOffer,
@@ -660,6 +786,7 @@ export function CartProvider({
     clear,
     placeOrder,
     resetOrder,
+    checkout,
     callWaiter,
     clearWaiter,
     applyOffer,

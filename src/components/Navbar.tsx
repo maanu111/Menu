@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BrandLogo } from "./BrandLogo";
 import { Sheet } from "./Sheet";
 import { LanguagePicker } from "./LanguagePicker";
+import { InstallButton } from "./InstallButton";
 import { useToast } from "./Toaster";
 import type { Restaurant, TableInfo } from "@/lib/types";
 
@@ -86,6 +87,11 @@ export function Navbar({
             </svg>
           </button>
           ) : null}
+
+          {/* Kept flush with the edge so it is easy to find on every menu. */}
+          <div className="-mr-4 shrink-0 sm:-mr-6">
+            <InstallButton />
+          </div>
 
         </nav>
       </header>

@@ -4,8 +4,8 @@ import { Sheet } from "./Sheet";
 import { DietMark } from "./DietMark";
 import { useToast } from "./Toaster";
 import { useCart } from "@/lib/cart-store";
-import { clsx, money } from "@/lib/format";
-import { t, stageText, type UIStrings } from "@/lib/ui-translations";
+import { money } from "@/lib/format";
+import { t } from "@/lib/ui-translations";
 import type { CartLine } from "@/lib/types";
 
 function when(at: number) {
@@ -23,95 +23,6 @@ function when(at: number) {
   });
 }
 
-const TRACK_STEPS = [
-  { id: "placed", key: "sentToKitchen" },
-  { id: "preparing", key: "cooking" },
-  { id: "ready", key: "ready" },
-  { id: "served", key: "served" },
-] as const;
-
-function OrderStatusProgressBar({
-  stage,
-  language,
-}: {
-  stage?: string;
-  language: string;
-}) {
-  if (!stage) return null;
-  const activeStage = stage === "accepted" ? "placed" : stage;
-  const currentIndex = Math.max(0, TRACK_STEPS.findIndex((s) => s.id === activeStage));
-
-  return (
-    <div className="border-b border-line bg-surface-2/60 px-3 py-3">
-      <div className="flex items-start justify-between">
-        {TRACK_STEPS.map((step, i) => {
-          const isDone = i < currentIndex;
-          const isActive = i === currentIndex;
-          return (
-            <div
-              key={step.id}
-              className="relative flex flex-1 flex-col items-center text-center"
-            >
-              {/* Connecting line */}
-              {i < TRACK_STEPS.length - 1 ? (
-                <div
-                  className={clsx(
-                    "absolute top-2.5 left-[50%] right-[-50%] h-0.5 z-0 transition",
-                    isDone ? "bg-veg" : "bg-line",
-                  )}
-                />
-              ) : null}
-
-              {/* Circle dot */}
-              <div
-                className={clsx(
-                  "relative z-10 grid size-5 place-items-center rounded-full border-2 text-[0.625rem] transition",
-                  isDone && "border-veg bg-veg text-white",
-                  isActive && "border-accent bg-accent text-accent-ink font-bold",
-                  !isDone && !isActive && "border-line bg-surface text-ink-3",
-                )}
-              >
-                {isDone ? (
-                  <svg viewBox="0 0 12 12" className="size-2.5" fill="none">
-                    <path
-                      d="M2.5 6.2l2.3 2.3L9.5 3.8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  <span>{i + 1}</span>
-                )}
-              </div>
-
-              {/* Label */}
-              <span
-                className={clsx(
-                  "mt-1 text-[0.625rem] font-medium leading-tight px-0.5",
-                  isActive
-                    ? "text-accent font-semibold"
-                    : isDone
-                      ? "text-ink-2"
-                      : "text-ink-3",
-                )}
-              >
-                {t(step.key as keyof UIStrings, language)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Everything this phone has ordered here, newest first, with a way to order
- * any of it again. Kept in the device's own storage — no account, nothing to
- * sign into, and it survives closing the tab.
- */
 export function OrderHistorySheet({
   open,
   onClose,
@@ -124,7 +35,7 @@ export function OrderHistorySheet({
   const { state, reorderDirect } = useCart();
   const notify = useToast();
 
-  async function again(lines: CartLine[], what: string) {
+  async function handleReorder(lines: CartLine[]) {
     const res = await reorderDirect(lines);
     if (res.ok) {
       notify(`Order ${res.code} sent to kitchen`, "good");
@@ -157,92 +68,58 @@ export function OrderHistorySheet({
         </div>
       ) : (
         <ul className="flex flex-col gap-4">
-          {state.history.map((order) => {
-            const isReadyOrServed =
-              order.stage === "ready" || order.stage === "served";
-            return (
-              <li
-                key={order.code + order.placedAt}
-                className="overflow-hidden rounded-xl border border-line bg-surface"
-              >
-                <div className="flex flex-wrap items-center gap-2 border-b border-line px-3.5 py-2.5">
-                  <span className="num text-sm font-semibold text-ink">
-                    {order.code}
+          {state.history.map((visit) => (
+            <li
+              key={visit.id}
+              className="overflow-hidden rounded-2xl border border-line border-l-4 border-l-veg bg-surface shadow-xs"
+            >
+              <div className="flex items-center justify-between border-b border-line/60 bg-veg/10 px-4 py-1.5 text-[0.6875rem] font-semibold text-veg">
+                <span>PAST CHECKOUT</span>
+                <span>COMPLETED</span>
+              </div>
+              <div className="flex items-center gap-2 border-b border-line/80 px-4 py-2.5">
+                <span className="text-xs font-semibold text-ink-2">
+                  {when(visit.checkedOutAt)}
+                </span>
+                {visit.ticketCodes && visit.ticketCodes.length > 0 ? (
+                  <span className="num rounded-md bg-surface-2 px-2 py-0.5 text-[0.6875rem] font-medium text-ink-3">
+                    {visit.ticketCodes.join(", ")}
                   </span>
-                  {order.stage ? (
-                    <span
-                      className={clsx(
-                        "rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold",
-                        isReadyOrServed
-                          ? "bg-veg/12 text-veg"
-                          : "bg-accent-soft text-accent",
-                      )}
-                    >
-                      {stageText(order.stage, language)}
+                ) : null}
+              </div>
+              <ul className="flex flex-col divide-y divide-line/60">
+                {visit.lines.map((line, idx) => (
+                  <li key={line.lineId || idx} className="flex items-center gap-2 px-4 py-2.5">
+                    <DietMark diet={line.diet} className="shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-xs text-ink">
+                      <span className="font-medium text-ink-2">{line.qty} × </span>
+                      {line.name}
                     </span>
-                  ) : null}
-                  <span className="text-xs text-ink-3">{when(order.placedAt)}</span>
-                  <button
-                    type="button"
-                    onClick={() => again(order.lines, "Everything")}
-                    className="ml-auto shrink-0 rounded-full bg-accent px-3 py-1.5 text-[0.6875rem] font-semibold text-accent-ink transition active:scale-95 hover:brightness-110"
-                  >
-                    Reorder all
-                  </button>
-                </div>
-
-                {/* Live order status progress bar */}
-                <OrderStatusProgressBar stage={order.stage} language={language} />
-
-                <ul className="flex flex-col divide-y divide-line">
-                  {order.lines.map((line) => (
-                    <li
-                      key={line.lineId}
-                      className="flex items-center gap-2.5 px-3.5 py-2.5"
+                    <span className="num shrink-0 text-xs font-medium text-ink">
+                      {money(line.qty * line.unitPrice)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleReorder([line])}
+                      className="ml-1.5 shrink-0 rounded-full border border-nonveg/40 px-2 py-0.5 text-[0.625rem] font-semibold text-nonveg transition active:scale-95 hover:bg-nonveg/10"
                     >
-                      <DietMark diet={line.diet} className="mt-0.5 shrink-0" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[0.8125rem] leading-snug text-ink">
-                          {line.name}
-                        </span>
-                        {line.optionLabels.length > 0 ? (
-                          <span className="block text-[0.6875rem] text-ink-3">
-                            {line.optionLabels.join(" · ")}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="num shrink-0 text-xs text-ink-3">
-                        {line.qty}×
-                      </span>
-                      <span className="num w-16 shrink-0 text-right text-[0.8125rem] text-ink">
-                        {money(line.qty * line.unitPrice)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => again([line], line.name)}
-                        className="shrink-0 rounded-full border border-accent px-2.5 py-1 text-[0.625rem] font-semibold text-accent transition active:scale-95 hover:bg-accent-soft"
-                      >
-                        Reorder
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="flex items-baseline justify-between border-t border-line px-3.5 py-2.5">
-                  <span className="text-xs text-ink-2">
-                    {order.mode === "pickup"
-                      ? "Collected"
-                      : order.tableNumber
-                        ? `Table ${order.tableNumber}`
-                        : "Dine-in"}
-                  </span>
-                  <span className="num text-sm font-semibold text-ink">
-                    {money(order.total)}
-                  </span>
-                </p>
-              </li>
-            );
-          })}
+                      Reorder
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center justify-between border-t border-line/80 bg-surface-2/30 px-4 py-2.5">
+                <span className="num text-xs font-bold text-ink">Total {money(visit.total)}</span>
+                <button
+                  type="button"
+                  onClick={() => handleReorder(visit.lines)}
+                  className="rounded-full bg-nonveg px-3.5 py-1 text-xs font-semibold text-white transition active:scale-95 hover:brightness-110"
+                >
+                  Reorder all
+                </button>
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </Sheet>
