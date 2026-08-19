@@ -222,12 +222,8 @@ export function OrderStatusModal({
               ))}
             </ul>
 
-            {items.length > 0 ? (
+            {tab === "status" && items.length > 0 ? (
               <div className="mt-1 flex flex-col gap-2.5">
-                <div className="flex items-baseline justify-between px-0.5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-ink">Anything else?</h3>
-                  <span className="text-xs text-ink-3">Goes on the same bill</span>
-                </div>
                 <AddOnsRail items={items} />
                 <DetailsCard />
               </div>
