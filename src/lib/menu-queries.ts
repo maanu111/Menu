@@ -171,7 +171,7 @@ const loadMenu = cache(async function loadMenu(
   return {
     restaurant: {
       slug: row.slug,
-      name: row.name,
+      name: row.name === "Kesar Tandoor" ? "DaAI Quantive" : row.name,
       tagline: row.tagline ?? "",
       logoSrc: row.logoUrl && row.logoUrl !== "/kesar-tandoor.svg" ? row.logoUrl : "/kt.jpeg",
       brandColor: row.brandColor,

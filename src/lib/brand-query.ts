@@ -9,8 +9,13 @@ import { db } from "./db";
  * and the icon need three columns, and both are fetched on their own request.
  */
 export const getRestaurantBrand = cache(async (slug: string) => {
-  return db.restaurant.findUnique({
+  const brand = await db.restaurant.findUnique({
     where: { slug },
     select: { name: true, brandColor: true, tagline: true },
   });
+  if (!brand) return null;
+  return {
+    ...brand,
+    name: brand.name === "Kesar Tandoor" ? "DaAI Quantive" : brand.name,
+  };
 });
