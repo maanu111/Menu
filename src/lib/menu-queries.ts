@@ -68,16 +68,23 @@ const loadMenu = cache(async function loadMenu(
 ): Promise<TableMenu | RestaurantMenu | null> {
   /* Anything missing in this language is filled in before the menu is read,
      so the guest who asked for it is the one who gets it. */
+  const targetSlug = (slug === "daai-quantive" || slug === "kesar-tandoor") ? "kesar-tandoor" : slug;
   if (lang) {
-    const found = await db.restaurant.findUnique({
-      where: { slug },
+    let found = await db.restaurant.findUnique({
+      where: { slug: targetSlug },
       select: { id: true },
     });
+    if (!found && targetSlug !== slug) {
+      found = await db.restaurant.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+    }
     if (found) await ensureTranslations(found.id, lang);
   }
 
-  const row = await db.restaurant.findUnique({
-    where: { slug },
+  let row = await db.restaurant.findUnique({
+    where: { slug: targetSlug },
     include: {
       tables: {
         where: { isActive: true },
@@ -123,6 +130,54 @@ const loadMenu = cache(async function loadMenu(
       },
     },
   });
+
+  if (!row && targetSlug !== slug) {
+    row = await db.restaurant.findUnique({
+      where: { slug },
+      include: {
+        tables: {
+          where: { isActive: true },
+          orderBy: { number: "asc" },
+          select: {
+            id: true,
+            number: true,
+            seats: true,
+            section: true,
+            qrToken: true,
+            isActive: true,
+          },
+        },
+        banners: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+          select: {
+            id: true,
+            imageUrl: true,
+            headline: true,
+            subtext: true,
+            code: true,
+          },
+        },
+        categories: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+          include: {
+            translations: lang ? { where: { lang } } : false,
+            items: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                translations: lang ? { where: { lang } } : false,
+                optionGroups: {
+                  orderBy: { sortOrder: "asc" },
+                  include: { choices: { orderBy: { sortOrder: "asc" } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 
   if (!row) return null;
 
