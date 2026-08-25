@@ -57,7 +57,7 @@ export function BrandLogo({
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
           className={clsx(
-            "size-full object-contain transition-opacity duration-300",
+            "size-full object-cover transition-opacity duration-300",
             loaded ? "opacity-100" : "opacity-0",
           )}
         />

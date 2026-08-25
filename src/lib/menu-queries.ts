@@ -173,7 +173,7 @@ const loadMenu = cache(async function loadMenu(
       slug: row.slug,
       name: row.name,
       tagline: row.tagline ?? "",
-      logoSrc: row.logoUrl ?? "/kesar-tandoor.svg",
+      logoSrc: row.logoUrl && row.logoUrl !== "/kesar-tandoor.svg" ? row.logoUrl : "/kt.jpeg",
       brandColor: row.brandColor,
       menuNote: row.menuNote ?? undefined,
       fssai: row.fssai ?? "",
