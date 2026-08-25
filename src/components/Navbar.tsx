@@ -41,8 +41,8 @@ export function Navbar({
           <BrandLogo
             src={restaurant.logoSrc}
             name={restaurant.name}
-            sizePx={40}
-            className="size-9"
+            sizePx={100}
+            className="h-10 w-14 sm:w-16"
           />
 
           <div className="min-w-0 flex-1">
@@ -65,66 +65,62 @@ export function Navbar({
           <LanguagePicker active={language} />
 
           {table ? (
-          <button
-            type="button"
-            onClick={() => setQrOpen(true)}
-            aria-label="Show table QR code"
-            className="grid size-8 shrink-0 place-items-center rounded-full border border-line text-ink-2 transition hover:border-accent hover:text-accent active:scale-95"
-          >
-            <svg viewBox="0 0 20 20" className="size-4" fill="none" aria-hidden="true">
-              <path
-                d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12 12h2m3 0h-1m-4 3v2m3-2h2m0 3v-1"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+            <button
+              type="button"
+              onClick={() => setQrOpen(true)}
+              aria-label="Show table QR code"
+              className="grid size-8 shrink-0 place-items-center rounded-full border border-line text-ink-2 transition hover:border-accent hover:text-accent active:scale-95"
+            >
+              <svg viewBox="0 0 20 20" className="size-4" fill="none" aria-hidden="true">
+                <path
+                  d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M12 12h2v2h-2zM15 15h2v2h-2zM15 12h2v2h-2zM12 15h2v2h-2z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
           ) : null}
 
-          {/* Kept flush with the edge so it is easy to find on every menu. */}
-          <div className="-mr-4 shrink-0 sm:-mr-6">
-            <InstallButton />
-          </div>
-
+          <InstallButton />
         </nav>
       </header>
 
+      {/* Sharing modal for table QR codes */}
       {table ? (
-      <Sheet
-        open={qrOpen}
-        onClose={() => setQrOpen(false)}
-        title={`Table ${table.number}`}
-        description="Scan to open this menu on another phone."
-        size="compact"
-        footer={
-          <button
-            type="button"
-            onClick={copyLink}
-            className="w-full rounded-full border border-line py-3 text-sm font-semibold text-ink transition hover:bg-surface-2 active:scale-[0.99]"
-          >
-            Copy link
-          </button>
-        }
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="w-full max-w-[240px] rounded-2xl bg-white p-5 text-black [&_svg]:size-full"
-            role="img"
-            aria-label={`QR code for table ${table.number}`}
-            dangerouslySetInnerHTML={{ __html: qrSvg }}
-          />
-          <p className="num rounded-full bg-surface-2 px-3 py-1.5 text-center text-[0.6875rem] break-all text-ink-3">
-            {qrUrl}
-          </p>
-        </div>
-      </Sheet>
+        <Sheet open={qrOpen} onClose={() => setQrOpen(false)} title={`Table ${table.number}`}>
+          <div className="flex flex-col items-center gap-4 py-2 text-center">
+            <p className="max-w-[17rem] text-xs text-ink-2">
+              Anyone at Table {table.number} can scan this code to open the same menu.
+            </p>
+
+            <div
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+              className="rounded-2xl border border-line bg-surface p-4 shadow-sm text-ink [&_svg]:size-52"
+            />
+
+            <div className="flex w-full gap-2 pt-2">
+              <button
+                type="button"
+                onClick={copyLink}
+                className="flex-1 rounded-full border border-line py-2.5 text-xs font-semibold text-ink transition hover:border-ink-3 active:scale-98"
+              >
+                Copy link
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrOpen(false)}
+                className="flex-1 rounded-full bg-accent py-2.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-98"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </Sheet>
       ) : null}
     </>
   );
