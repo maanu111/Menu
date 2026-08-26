@@ -19,7 +19,7 @@ export function DishImage({
   className?: string;
   sizes?: string;
   /** Set on the few dishes above the fold so the LCP image isn't lazy. */
-  priority?: boolean;
+  priority?: boolean; 
 }) {
   const rawSrc = item.imageUrl;
   const src = rawSrc
