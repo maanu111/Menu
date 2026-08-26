@@ -103,6 +103,18 @@ function OrderStatusProgressBar({
   );
 }
 
+function getDisplayTableNumber(
+  tableNumber: string | null | undefined,
+  tables?: { number: string; token: string }[],
+) {
+  if (!tableNumber) return "";
+  const match = tables?.find(
+    (t) => t.token.toLowerCase() === tableNumber.toLowerCase(),
+  );
+  if (match) return match.number;
+  return tableNumber;
+}
+
 export function OrderStatusModal({
   open,
   onClose,
@@ -112,6 +124,7 @@ export function OrderStatusModal({
   token,
   language = "en",
   stageLabels,
+  tables,
 }: {
   open: boolean;
   onClose: () => void;
@@ -121,6 +134,7 @@ export function OrderStatusModal({
   token: string | null;
   language?: string;
   stageLabels?: unknown;
+  tables?: { number: string; token: string }[];
 }) {
   const { state, reorderDirect, checkout } = useCart();
   const notify = useToast();
@@ -258,6 +272,7 @@ export function OrderStatusModal({
                   order={order}
                   language={language}
                   stageLabels={stageLabels}
+                  tables={tables}
                   onReorder={handleReorder}
                 />
               ))}
@@ -285,6 +300,7 @@ export function OrderStatusModal({
                 key={visit.id}
                 visit={visit}
                 language={language}
+                tables={tables}
                 onReorder={handleReorder}
               />
             ))}
@@ -304,11 +320,13 @@ function ActiveOrderCard({
   order,
   language,
   stageLabels,
+  tables,
   onReorder,
 }: {
   order: PastOrder;
   language: string;
   stageLabels?: unknown;
+  tables?: { number: string; token: string }[];
   onReorder: (lines: CartLine[]) => void;
 }) {
   const stage = order.stage ?? "placed";
@@ -320,6 +338,8 @@ function ActiveOrderCard({
       : stage === "ready"
         ? "border-l-4 border-l-veg"
         : "border-l-4 border-l-nonveg";
+
+  const displayTable = getDisplayTableNumber(order.tableNumber, tables);
 
   return (
     <li className={clsx("overflow-hidden rounded-2xl border border-line bg-surface shadow-xs transition-all", borderStageClass)}>
@@ -364,8 +384,8 @@ function ActiveOrderCard({
         <span className="text-xs text-ink-3">
           {order.mode === "pickup"
             ? "Collected"
-            : order.tableNumber
-              ? `Table ${order.tableNumber}`
+            : displayTable
+              ? `Table ${displayTable}`
               : "Dine-in"}
         </span>
         <div className="flex items-center gap-2.5">
@@ -386,12 +406,15 @@ function ActiveOrderCard({
 function CheckoutVisitCard({
   visit,
   language,
+  tables,
   onReorder,
 }: {
   visit: CheckoutVisit;
   language: string;
+  tables?: { number: string; token: string }[];
   onReorder: (lines: CartLine[]) => void;
 }) {
+  const displayTable = getDisplayTableNumber(visit.tableNumber, tables);
   return (
     <li className="overflow-hidden rounded-2xl border border-line border-l-4 border-l-veg bg-surface shadow-xs transition-all">
       {/* Green Header Badge Strip */}
@@ -411,7 +434,7 @@ function CheckoutVisitCard({
           </span>
         ) : null}
         <span className="ml-auto text-xs text-ink-3">
-          {visit.mode === "pickup" ? "Collected" : visit.tableNumber ? `Table ${visit.tableNumber}` : "Dine-in"}
+          {visit.mode === "pickup" ? "Collected" : displayTable ? `Table ${displayTable}` : "Dine-in"}
         </span>
       </div>
 
