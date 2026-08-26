@@ -192,6 +192,10 @@ export function OrderTracker({
             >
               {checkingOut ? "The counter knows" : state.stage === "served" ? "Checkout" : "In Kitchen"}
             </button>
+            <p className="mt-1 text-center text-[0.75rem] font-medium text-ink-3 flex items-center justify-center gap-1.5">
+              <span className="text-accent">💳</span>
+              <span>You can pay at the counter after checkout</span>
+            </p>
           </div>
         ) : null}
 

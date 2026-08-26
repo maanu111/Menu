@@ -13,11 +13,17 @@ export function BrandLogo({
   name,
   className,
   sizePx = 64,
+  widthPx,
+  heightPx,
+  fit = "fill",
 }: {
   src: string;
   name: string;
   className?: string;
   sizePx?: number;
+  widthPx?: number;
+  heightPx?: number;
+  fit?: "contain" | "cover" | "fill";
 }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -51,13 +57,14 @@ export function BrandLogo({
         <Image
           src={src}
           alt={`${name} logo`}
-          width={sizePx}
-          height={sizePx}
+          width={widthPx ?? sizePx}
+          height={heightPx ?? sizePx}
           priority
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
           className={clsx(
-            "size-full object-cover transition-opacity duration-300",
+            "size-full transition-opacity duration-300",
+            fit === "fill" ? "object-fill" : fit === "cover" ? "object-cover" : "object-contain",
             loaded ? "opacity-100" : "opacity-0",
           )}
         />

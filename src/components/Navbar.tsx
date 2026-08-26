@@ -37,19 +37,17 @@ export function Navbar({
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-ground/85 backdrop-blur-md">
-        <nav className="mx-auto flex h-14 w-full max-w-140 items-center gap-2.5 px-4 sm:px-6">
+        <nav className="mx-auto flex h-[4.5rem] w-full max-w-140 items-center gap-3 px-4 sm:px-6">
           <BrandLogo
             src={restaurant.logoSrc}
             name={restaurant.name}
-            sizePx={100}
-            className="h-10 w-14 sm:w-16"
+            widthPx={350}
+            heightPx={100}
+            fit="fill"
+            className="h-14 w-56 sm:h-15 sm:w-68 rounded-xl border border-line/70 bg-[#0B1528] shadow-sm"
           />
 
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm leading-tight font-semibold text-ink">
-              {restaurant.name}
-            </h1>
-          </div>
+          <div className="min-w-0 flex-1" />
 
           <LanguagePicker active={language} />
 

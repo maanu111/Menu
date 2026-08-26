@@ -126,8 +126,8 @@ export function MenuBrowser({
 
       {/* ------------------------------------------------- Category rail */}
       {!searching ? (
-        <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-ground/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 shadow-xs">
-          <div ref={railRef} className="no-bar flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-3">
+        <div className="sticky top-[4.5rem] z-20 -mx-4 border-b border-line bg-ground/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 shadow-xs">
+          <div ref={railRef} className="no-bar flex items-center gap-2.5 overflow-x-auto py-3">
             {grouped.map(({ category }) => {
               const active = activeId === category.id;
               return (
@@ -138,10 +138,10 @@ export function MenuBrowser({
                   onClick={() => jumpTo(category.id)}
                   aria-current={active ? "true" : undefined}
                   className={clsx(
-                    "shrink-0 rounded-full border px-4 py-1.5 text-[0.8125rem] font-semibold whitespace-nowrap transition-all duration-200 active:scale-95",
+                    "shrink-0 rounded-full border px-5 py-2 text-sm sm:text-[0.9375rem] font-bold whitespace-nowrap transition-all duration-200 active:scale-95",
                     active
-                      ? "border-accent bg-accent text-accent-ink shadow-md shadow-accent/25 scale-[1.03] ring-2 ring-accent/30"
-                      : "border-line bg-surface/90 text-ink-2 hover:border-ink-3/40 hover:bg-surface-2 hover:text-ink",
+                      ? "border-veg bg-veg text-white shadow-md shadow-veg/35 scale-[1.04] ring-2 ring-veg/30"
+                      : "border-line bg-surface text-ink-2 hover:border-ink-3/50 hover:bg-surface-2 hover:text-ink",
                   )}
                 >
                   {category.name}
@@ -185,16 +185,20 @@ export function MenuBrowser({
               className="scroll-mt-28"
               aria-labelledby={`${category.id}-heading`}
             >
-              <div className="mb-2 flex items-center gap-2">
-                <h2
-                  id={`${category.id}-heading`}
-                  className="text-[0.8125rem] font-semibold tracking-tight text-ink"
-                >
-                  {category.name}
-                </h2>
-                <span className="num shrink-0 text-[0.6875rem] text-ink-3">
-                  {rows.length}
-                </span>
+              <div className="my-5 flex items-center justify-center gap-3 text-center">
+                <span className="h-0.5 flex-1 bg-veg/30" />
+                <div className="flex items-center gap-2.5 rounded-full border-2 border-veg/40 bg-veg/10 px-6 py-2 shadow-xs">
+                  <h2
+                    id={`${category.id}-heading`}
+                    className="text-base sm:text-lg font-black tracking-wider uppercase text-veg"
+                  >
+                    {category.name}
+                  </h2>
+                  <span className="num rounded-full bg-veg px-2.5 py-0.5 text-xs font-bold text-white shadow-2xs">
+                    {rows.length}
+                  </span>
+                </div>
+                <span className="h-0.5 flex-1 bg-veg/30" />
               </div>
 
               {/* Rows run edge to edge; only their contents keep the gutter. */}
