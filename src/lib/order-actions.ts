@@ -85,17 +85,35 @@ export async function checkOffer(
   };
 }
 
-/** Short code the staff read aloud. Unique inside the restaurant. */
+/** Daily sequential code starting with C (C-001, C-002...) restarting each day per restaurant */
 async function nextCode(restaurantId: string) {
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const code = `T-${Math.floor(1000 + Math.random() * 9000)}`;
-    const taken = await db.order.findFirst({
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const todayCount = await db.order.count({
+    where: {
+      restaurantId,
+      placedAt: { gte: startOfDay, lte: endOfDay },
+    },
+  });
+
+  let num = todayCount + 1;
+  let code = `C-${String(num).padStart(3, "0")}`;
+
+  while (
+    await db.order.findFirst({
       where: { restaurantId, code },
       select: { id: true },
-    });
-    if (!taken) return code;
+    })
+  ) {
+    num++;
+    code = `C-${String(num).padStart(3, "0")}`;
   }
-  return `T-${Date.now().toString().slice(-6)}`;
+
+  return code;
 }
 
 /**
