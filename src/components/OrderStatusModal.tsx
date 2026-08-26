@@ -201,7 +201,7 @@ export function OrderStatusModal({
           tab === "history" ? "text-ink" : "text-ink-3 hover:text-ink-2",
         )}
       >
-        {t("yourPastOrders", language)}
+        Order history
         {tab === "history" ? (
           <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" />
         ) : null}
