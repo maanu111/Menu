@@ -644,3 +644,15 @@ model WaiterCall {
   @@index([tableId, createdAt])
   @@index([acknowledgedById], map: "WaiterCall_acknowledgedById_fkey")
 }
+
+// ------------------------------------------------------- Dynamic Platform Content
+
+/// Terms of Service, Privacy Policy and platform legal documents edited by Platform Admin.
+model PlatformContent {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String   @db.LongText
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
