@@ -251,6 +251,7 @@ export function MenuShell({
         slug={restaurant.slug}
         token={seatedAt?.token ?? null}
         language={language}
+        stageLabels={restaurant.stageLabels}
       />
 
       {seated && seatedAt ? (

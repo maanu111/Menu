@@ -238,6 +238,7 @@ const loadMenu = cache(async function loadMenu(
       acceptsPickup: row.acceptsPickup,
       pickupNote: row.pickupNote ?? undefined,
       pickupMin: row.pickupMinPaise / 100,
+      stageLabels: row.stageLabels,
     },
     ...(table
       ? {

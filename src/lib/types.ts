@@ -53,6 +53,7 @@ export type Restaurant = {
   pickupNote?: string;
   /** Smallest collection order, in rupees. 0 = no minimum. */
   pickupMin: number;
+  stageLabels?: unknown;
 };
 
 /** A slide in the strip above the menu. */

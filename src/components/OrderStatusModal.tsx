@@ -28,26 +28,47 @@ function when(at: number) {
   });
 }
 
-const TRACK_STEPS = [
-  { id: "placed", key: "sentToKitchen" },
-  { id: "preparing", key: "cooking" },
-  { id: "ready", key: "ready" },
-  { id: "served", key: "served" },
-] as const;
+import { getActiveStages } from "@/lib/stage-config";
 
-function OrderStatusProgressBar({ stage, language }: { stage?: string; language: string }) {
-  const activeStage = stage === "accepted" ? "placed" : stage ?? "placed";
-  const currentIndex = Math.max(0, TRACK_STEPS.findIndex((step) => step.id === activeStage));
+function OrderStatusProgressBar({
+  stage,
+  language,
+  stageLabels,
+}: {
+  stage?: string;
+  language: string;
+  stageLabels?: unknown;
+}) {
+  const activeStages = getActiveStages(stageLabels);
+  const trackSteps = activeStages.map((s) => ({
+    id: s.key.toLowerCase(),
+    label: s.label,
+  }));
+
+  const activeStage = stage === "accepted" ? "placed" : (stage ?? "placed").toLowerCase();
+  let currentIndex = trackSteps.findIndex((step) => step.id === activeStage);
+  if (currentIndex === -1) {
+    const canonicalOrder = ["placed", "preparing", "ready", "served"];
+    const cIndex = canonicalOrder.indexOf(activeStage);
+    for (let i = cIndex; i < canonicalOrder.length; i++) {
+      const found = trackSteps.findIndex((s) => s.id === canonicalOrder[i]);
+      if (found !== -1) {
+        currentIndex = found;
+        break;
+      }
+    }
+    if (currentIndex === -1) currentIndex = trackSteps.length - 1;
+  }
 
   return (
     <div className="border-b border-line bg-surface-2/40 px-3 py-2.5">
       <div className="flex items-start justify-between">
-        {TRACK_STEPS.map((step, index) => {
+        {trackSteps.map((step, index) => {
           const done = index < currentIndex;
           const active = index === currentIndex;
           return (
             <div key={step.id} className="relative flex flex-1 flex-col items-center text-center">
-              {index < TRACK_STEPS.length - 1 ? (
+              {index < trackSteps.length - 1 ? (
                 <span
                   aria-hidden="true"
                   className={clsx(
@@ -72,7 +93,7 @@ function OrderStatusProgressBar({ stage, language }: { stage?: string; language:
                   active ? "font-semibold text-nonveg" : done ? "text-ink-2" : "text-ink-3",
                 )}
               >
-                {t(step.key as keyof UIStrings, language)}
+                {step.label}
               </span>
             </div>
           );
@@ -90,6 +111,7 @@ export function OrderStatusModal({
   slug,
   token,
   language = "en",
+  stageLabels,
 }: {
   open: boolean;
   onClose: () => void;
@@ -98,6 +120,7 @@ export function OrderStatusModal({
   slug: string;
   token: string | null;
   language?: string;
+  stageLabels?: unknown;
 }) {
   const { state, reorderDirect, checkout } = useCart();
   const notify = useToast();
@@ -122,64 +145,76 @@ export function OrderStatusModal({
   async function handleCheckout() {
     setCheckingOut(true);
     try {
-      if (token) {
-        const response = await fetch("/api/call", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            slug,
-            token,
-            reason: "checkout",
-            sessionId: state.sessionId,
-          }),
-        });
-        if (!response.ok) throw new Error("Checkout request failed");
+      const res = await fetch("/api/call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          token,
+          reason: "checkout",
+          sessionId: state.sessionId,
+        }),
+      });
+      if (res.ok) {
+        checkout();
+        notify("Checkout requested. Counter staff will assist you shortly.", "good");
+        onClose();
+      } else {
+        notify("Failed to request checkout. Please call waiter.");
+        setCheckingOut(false);
       }
-
-      checkout();
-      setTab("history");
-      notify(
-        token ? "The counter has been told — someone is on the way" : "Order moved to history",
-        "good",
-      );
     } catch {
-      notify("Couldn't request checkout. Please try again.");
-    } finally {
+      notify("Failed to request checkout. Please call waiter.");
       setCheckingOut(false);
     }
   }
 
   const activeOrders = state.activeOrders;
-  const combinedTotal = activeOrders.reduce((sum, order) => sum + order.total, 0);
   const combinedItems = activeOrders.reduce(
-    (sum, order) => sum + order.lines.reduce((lineSum, line) => lineSum + line.qty, 0),
-    0,
+    (acc, order) => acc + order.lines.reduce((lAcc, l) => lAcc + l.qty, 0),
+    0
   );
+  const combinedTotal = activeOrders.reduce((acc, order) => acc + order.total, 0);
   const allServed = activeOrders.length > 0 && activeOrders.every((o) => o.stage === "served");
 
   const header = (
-    <div className="-mb-1 flex w-full items-center justify-between pr-2">
+    <div className="flex items-center gap-1 border-b border-line px-4 pt-1">
       <button
         type="button"
         onClick={() => setTab("status")}
         className={clsx(
-          "relative pb-2.5 text-base font-semibold transition",
-          tab === "status" ? "text-ink" : "text-ink-3 hover:text-ink-2",
+          "relative flex items-center gap-2 py-3 text-sm font-semibold transition-colors",
+          tab === "status" ? "text-nonveg" : "text-ink-3 hover:text-ink-2",
         )}
       >
-        {t("orderStatus", language)}
-        {tab === "status" ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" /> : null}
+        <span>Active Orders</span>
+        {activeOrders.length > 0 ? (
+          <span className="num grid size-4.5 place-items-center rounded-full bg-nonveg text-[0.625rem] text-white">
+            {activeOrders.length}
+          </span>
+        ) : null}
+        {tab === "status" ? (
+          <span className="absolute inset-x-0 bottom-0 h-0.5 bg-nonveg" />
+        ) : null}
       </button>
+
       <button
         type="button"
         onClick={() => setTab("history")}
         className={clsx(
-          "relative ml-auto pb-2.5 pr-2 text-base font-semibold transition",
-          tab === "history" ? "text-ink" : "text-ink-3 hover:text-ink-2",
+          "relative ml-4 flex items-center gap-2 py-3 text-sm font-semibold transition-colors",
+          tab === "history" ? "text-nonveg" : "text-ink-3 hover:text-ink-2",
         )}
       >
-        {t("yourPastOrders", language)}
-        {tab === "history" ? <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" /> : null}
+        <span>Past Visits</span>
+        {state.history.length > 0 ? (
+          <span className="num grid size-4.5 place-items-center rounded-full bg-surface-2 text-[0.625rem] text-ink-2">
+            {state.history.length}
+          </span>
+        ) : null}
+        {tab === "history" ? (
+          <span className="absolute inset-x-0 bottom-0 h-0.5 bg-nonveg" />
+        ) : null}
       </button>
     </div>
   );
@@ -232,6 +267,7 @@ export function OrderStatusModal({
                   key={order.orderDbId || order.code + order.placedAt}
                   order={order}
                   language={language}
+                  stageLabels={stageLabels}
                   onReorder={handleReorder}
                 />
               ))}
@@ -277,10 +313,12 @@ export function OrderStatusModal({
 function ActiveOrderCard({
   order,
   language,
+  stageLabels,
   onReorder,
 }: {
   order: PastOrder;
   language: string;
+  stageLabels?: unknown;
   onReorder: (lines: CartLine[]) => void;
 }) {
   const stage = order.stage ?? "placed";
@@ -308,7 +346,7 @@ function ActiveOrderCard({
         <span className="ml-auto text-xs text-ink-3">{when(order.placedAt)}</span>
       </div>
 
-      <OrderStatusProgressBar stage={stage} language={language} />
+      <OrderStatusProgressBar stage={stage} language={language} stageLabels={stageLabels} />
 
       <ul className="flex flex-col divide-y divide-line/60">
         {order.lines.map((line) => (

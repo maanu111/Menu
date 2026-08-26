@@ -111,7 +111,7 @@ export function MenuItemCard({
     <>
       <article
         className={clsx(
-          "flex gap-3 border-b border-line px-4 py-3 last:border-b-0 sm:px-6",
+          "flex gap-3.5 border-b-2 border-line px-4 py-4 last:border-b-0 sm:px-6 transition-colors hover:bg-surface/50",
           !item.available && "opacity-55",
         )}
       >

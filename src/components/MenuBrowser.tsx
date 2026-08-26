@@ -202,7 +202,7 @@ export function MenuBrowser({
               </div>
 
               {/* Rows run edge to edge; only their contents keep the gutter. */}
-              <div className="-mx-4 flex flex-col border-t border-line sm:-mx-6">
+              <div className="-mx-4 flex flex-col border-y-2 border-line sm:-mx-6 divide-y-2 divide-line bg-surface/30">
                 {rows.map((item, rowIndex) => (
                   <MenuItemCard
                     key={item.id}
