@@ -178,23 +178,18 @@ export function OrderStatusModal({
   const allServed = activeOrders.length > 0 && activeOrders.every((o) => o.stage === "served");
 
   const header = (
-    <div className="flex items-center gap-1 border-b border-line px-4 pt-1">
+    <div className="-mb-1 flex w-full items-center justify-between pr-2">
       <button
         type="button"
         onClick={() => setTab("status")}
         className={clsx(
-          "relative flex items-center gap-2 py-3 text-sm font-semibold transition-colors",
-          tab === "status" ? "text-nonveg" : "text-ink-3 hover:text-ink-2",
+          "relative pb-2.5 text-base font-semibold transition",
+          tab === "status" ? "text-ink" : "text-ink-3 hover:text-ink-2",
         )}
       >
-        <span>Active Orders</span>
-        {activeOrders.length > 0 ? (
-          <span className="num grid size-4.5 place-items-center rounded-full bg-nonveg text-[0.625rem] text-white">
-            {activeOrders.length}
-          </span>
-        ) : null}
+        {t("orderStatus", language)}
         {tab === "status" ? (
-          <span className="absolute inset-x-0 bottom-0 h-0.5 bg-nonveg" />
+          <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" />
         ) : null}
       </button>
 
@@ -202,18 +197,13 @@ export function OrderStatusModal({
         type="button"
         onClick={() => setTab("history")}
         className={clsx(
-          "relative ml-4 flex items-center gap-2 py-3 text-sm font-semibold transition-colors",
-          tab === "history" ? "text-nonveg" : "text-ink-3 hover:text-ink-2",
+          "relative ml-auto pb-2.5 pr-2 text-base font-semibold transition",
+          tab === "history" ? "text-ink" : "text-ink-3 hover:text-ink-2",
         )}
       >
-        <span>Past Visits</span>
-        {state.history.length > 0 ? (
-          <span className="num grid size-4.5 place-items-center rounded-full bg-surface-2 text-[0.625rem] text-ink-2">
-            {state.history.length}
-          </span>
-        ) : null}
+        {t("yourPastOrders", language)}
         {tab === "history" ? (
-          <span className="absolute inset-x-0 bottom-0 h-0.5 bg-nonveg" />
+          <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-nonveg" />
         ) : null}
       </button>
     </div>
