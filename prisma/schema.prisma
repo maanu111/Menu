@@ -6,8 +6,9 @@
 // later would mean rewriting every query in the app.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   output   = "../src/generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
