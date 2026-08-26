@@ -66,6 +66,7 @@ export default async function TableMenuPage({
         storageKey={`kt-cart-${slug}-${token}`}
         slug={slug}
         token={token}
+        tableNumber={menu.table.number}
       >
         <ScanLogger slug={slug} token={token} />
         <div className="brand-scope contents">

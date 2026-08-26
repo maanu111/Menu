@@ -497,12 +497,14 @@ export function CartProvider({
   storageKey,
   slug,
   token,
+  tableNumber,
   children,
 }: {
   storageKey: string;
   slug: string;
   /** Null when the guest is ordering for delivery instead of at a table. */
   token: string | null;
+  tableNumber?: string | null;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, EMPTY);
@@ -678,7 +680,7 @@ export function CartProvider({
         type: "placeDirectHistoryOrder",
         orderId: result.code,
         orderDbId: result.orderId,
-        tableNumber: chosenTable ?? token ?? null,
+        tableNumber: tableNumber ?? chosenTable ?? null,
         lines,
         total,
       });
@@ -688,6 +690,7 @@ export function CartProvider({
     [
       modeRef,
       token,
+      tableNumber,
       chosenTable,
       sessionRef,
       guestsRef,
@@ -727,7 +730,7 @@ export function CartProvider({
       type: "place",
       orderId: result.code,
       orderDbId: result.orderId,
-      tableNumber: chosenTable ?? token ?? null,
+      tableNumber: tableNumber ?? chosenTable ?? null,
     });
     return { ok: true as const, code: result.code };
   }, [
@@ -741,6 +744,7 @@ export function CartProvider({
     chosenTable,
     slug,
     token,
+    tableNumber,
   ]);
 
   const callWaiter = useCallback(
