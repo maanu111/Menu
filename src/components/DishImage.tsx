@@ -21,7 +21,17 @@ export function DishImage({
   /** Set on the few dishes above the fold so the LCP image isn't lazy. */
   priority?: boolean;
 }) {
-  const src = item.imageUrl;
+  const rawSrc = item.imageUrl;
+  const src = rawSrc
+    ? rawSrc.startsWith("http://") || rawSrc.startsWith("https://") || rawSrc.startsWith("data:")
+      ? rawSrc
+      : rawSrc.startsWith("/uploads/")
+        ? (typeof window !== "undefined" && window.location.port === "3003"
+            ? `http://${window.location.hostname}:3002${rawSrc}`
+            : rawSrc)
+        : rawSrc
+    : null;
+
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(!src);
 
@@ -52,6 +62,7 @@ export function DishImage({
           src={src}
           alt={item.name}
           fill
+          unoptimized
           sizes={sizes}
           priority={priority}
           onLoad={() => setLoaded(true)}
