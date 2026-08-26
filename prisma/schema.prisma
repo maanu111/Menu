@@ -137,6 +137,13 @@ model Restaurant {
   pickupNote    String? @db.VarChar(300)
   /// Smallest order the kitchen will make up for collection, in paise.
   pickupMinPaise Int    @default(0)
+  /// When true orders go straight to kitchen (PLACED). When false they
+  /// land as ACCEPTED and need a staff tap to start cooking.
+  autoAccept     Boolean @default(true)
+  /// Custom display labels for the four order stages. JSON object like
+  /// {"PLACED":"Received","PREPARING":"In Kitchen","READY":"Pick Up","SERVED":"Done"}.
+  /// Null means use the built-in defaults.
+  stageLabels    Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

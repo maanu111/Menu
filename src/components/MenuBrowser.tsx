@@ -126,8 +126,8 @@ export function MenuBrowser({
 
       {/* ------------------------------------------------- Category rail */}
       {!searching ? (
-        <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-ground/85 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
-          <div ref={railRef} className="no-bar flex gap-1.5 overflow-x-auto py-2.5">
+        <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-ground/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 shadow-xs">
+          <div ref={railRef} className="no-bar flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-3">
             {grouped.map(({ category }) => {
               const active = activeId === category.id;
               return (
@@ -138,10 +138,10 @@ export function MenuBrowser({
                   onClick={() => jumpTo(category.id)}
                   aria-current={active ? "true" : undefined}
                   className={clsx(
-                    "shrink-0 rounded-full border px-3.5 py-1.5 text-[0.8125rem] font-medium whitespace-nowrap transition",
+                    "shrink-0 rounded-full border px-4 py-1.5 text-[0.8125rem] font-semibold whitespace-nowrap transition-all duration-200 active:scale-95",
                     active
-                      ? "border-accent bg-accent text-accent-ink"
-                      : "border-line bg-surface text-ink-2 hover:bg-surface-2 hover:text-ink",
+                      ? "border-accent bg-accent text-accent-ink shadow-md shadow-accent/25 scale-[1.03] ring-2 ring-accent/30"
+                      : "border-line bg-surface/90 text-ink-2 hover:border-ink-3/40 hover:bg-surface-2 hover:text-ink",
                   )}
                 >
                   {category.name}

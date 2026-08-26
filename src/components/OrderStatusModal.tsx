@@ -155,6 +155,7 @@ export function OrderStatusModal({
     (sum, order) => sum + order.lines.reduce((lineSum, line) => lineSum + line.qty, 0),
     0,
   );
+  const allServed = activeOrders.length > 0 && activeOrders.every((o) => o.stage === "served");
 
   const header = (
     <div className="-mb-1 flex w-full items-center justify-between pr-2">
@@ -195,13 +196,23 @@ export function OrderStatusModal({
           </span>
           <span className="num text-xl font-bold text-ink">{money(combinedTotal)}</span>
         </div>
+        {!allServed ? (
+          <p className="text-center text-xs text-ink-3">
+            Checkout will be available once all dishes are served
+          </p>
+        ) : null}
         <button
           type="button"
-          disabled={checkingOut}
+          disabled={checkingOut || !allServed}
           onClick={() => void handleCheckout()}
-          className="h-11 w-full rounded-full bg-nonveg text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
+          className={clsx(
+            "h-11 w-full rounded-full text-sm font-semibold transition active:scale-[0.99] shadow-sm",
+            allServed
+              ? "bg-veg text-white hover:brightness-110"
+              : "bg-surface-2 text-ink-3 cursor-not-allowed border border-line opacity-80",
+          )}
         >
-          {checkingOut ? "Requesting checkout…" : "Checkout"}
+          {checkingOut ? "Requesting checkout…" : allServed ? "Checkout & Settle Bill" : "Cooking in progress"}
         </button>
       </div>
     ) : null;
@@ -271,8 +282,15 @@ function ActiveOrderCard({
   const stage = order.stage ?? "placed";
   const served = stage === "served";
 
+  const borderStageClass =
+    served
+      ? "border-l-4 border-l-veg"
+      : stage === "ready"
+        ? "border-l-4 border-l-veg"
+        : "border-l-4 border-l-nonveg";
+
   return (
-    <li className="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
+    <li className={clsx("overflow-hidden rounded-2xl border border-line bg-surface shadow-xs transition-all", borderStageClass)}>
       <div className="flex items-center gap-2 border-b border-line/80 px-4 py-2.5">
         <span className="num text-base font-bold text-ink">{order.code}</span>
         <span

@@ -163,13 +163,6 @@ export function CallWaiterSheet({
                 <span className="flex-1 text-[0.8125rem] font-medium text-ink">
                   {reason.label}
                 </span>
-                <svg
-                  viewBox="0 0 16 16"
-                  className="size-3 shrink-0 text-ink-3 transition group-hover:translate-x-0.5 group-hover:text-accent"
-                  aria-hidden="true"
-                >
-                  <path d="M6 3 11 8l-5 5" {...stroke} strokeWidth={1.7} />
-                </svg>
               </button>
             </li>
           ))}

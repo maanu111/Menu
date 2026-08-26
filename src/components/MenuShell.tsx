@@ -78,31 +78,49 @@ export function MenuShell({
       <OrderModeSheet restaurant={restaurant} table={table} tables={tables} language={language} />
 
       <main className="mx-auto w-full max-w-140 px-4 sm:px-6">
-        {forPickup ? (
-          <PickupStrip restaurant={restaurant} language={language} />
-        ) : seatedAt ? (
-          <SeatStrip number={seatedAt.number} language={language} />
-        ) : null}
+        {!restaurant.isOpen ? (
+          <div className="my-12 flex flex-col items-center justify-center rounded-3xl border border-line bg-surface p-8 text-center shadow-sm">
+            <div className="grid size-16 place-items-center rounded-2xl bg-accent-soft text-3xl">
+              ⏳
+            </div>
+            <h2 className="mt-5 text-xl font-bold text-ink">Taking a Short Break</h2>
+            <p className="mt-2.5 max-w-md text-sm leading-relaxed text-ink-2">
+              We are currently preparing for our next service. Please visit us again shortly — we would love to serve you delicious meals!
+            </p>
+            <div className="mt-6 flex items-center gap-2 rounded-full border border-line bg-surface-2 px-4 py-2 text-xs font-medium text-ink-3">
+              <span>🍽️ Kitchen opens soon</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {forPickup ? (
+              <PickupStrip restaurant={restaurant} language={language} />
+            ) : seatedAt ? (
+              <SeatStrip number={seatedAt.number} language={language} />
+            ) : null}
 
-        {restaurant.menuNote ? (
-          <p className="mt-2 rounded-lg bg-accent-soft px-3 py-2 text-[0.75rem] text-accent">
-            {restaurant.menuNote}
-          </p>
-        ) : null}
+            {restaurant.menuNote ? (
+              <p className="mt-2 rounded-lg bg-accent-soft px-3 py-2 text-[0.75rem] text-accent">
+                {restaurant.menuNote}
+              </p>
+            ) : null}
 
-        <BannerRail banners={banners} />
+            <BannerRail banners={banners} />
 
-        <MenuBrowser categories={categories} items={items} />
+            <MenuBrowser categories={categories} items={items} />
 
-        <footer className="num border-t border-line py-8 text-center text-[0.6875rem] text-ink-3">
-          FSSAI {restaurant.fssai}
-        </footer>
+            <footer className="num border-t border-line py-8 text-center text-[0.6875rem] text-ink-3">
+              FSSAI {restaurant.fssai}
+            </footer>
 
-        {/* Clears the fixed bar so the last dish is never trapped under it. */}
-        <div aria-hidden="true" className={clsx(orderLive ? "h-40" : "h-28")} />
+            {/* Clears the fixed bar so the last dish is never trapped under it. */}
+            <div aria-hidden="true" className={clsx(orderLive ? "h-40" : "h-28")} />
+          </>
+        )}
       </main>
 
       {/* ------------------------------------------------- Fixed bottom bar */}
+      {restaurant.isOpen ? (
       <div
         className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-140 px-4 sm:px-6"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
@@ -155,9 +173,7 @@ export function MenuShell({
           <button
             type="button"
             onClick={() => setWaiterOpen(true)}
-            aria-label={
-              cooldown > 0 ? `Staff called, ${cooldown} seconds left` : t("staff", language)
-            }
+            aria-label={t("staff", language)}
             className={clsx(
               "flex h-12 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold transition active:scale-95",
               cooldown > 0
@@ -174,11 +190,7 @@ export function MenuShell({
                 strokeLinejoin="round"
               />
             </svg>
-            {cooldown > 0 ? (
-              <span className="num text-xs">{cooldown}s</span>
-            ) : (
-              <span>{t("staff", language)}</span>
-            )}
+            <span>{t("staff", language)}</span>
           </button>
           ) : null}
 
@@ -197,12 +209,13 @@ export function MenuShell({
               <span className="num">{money(bill.total)}</span>
             </button>
           ) : (
-            <p className="flex h-12 min-w-0 flex-1 items-center justify-center px-4 text-sm text-ink-3">
+            <p className="flex h-12 min-w-0 flex-1 items-center justify-center px-4 text-sm font-medium text-ink-3">
               {orderLive ? t("orderInProgress", language) : t("addDishToStart", language)}
             </p>
           )}
         </div>
       </div>
+      ) : null}
 
       {/* ------------------------------------------------------- Sheets */}
       <Sheet

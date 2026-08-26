@@ -158,31 +158,41 @@ export function OrderTracker({
           counter
         </p>
 
-        {/* Tells the counter this table is done and wants to settle up. It
-            rides the same live channel the staff calls already use, so it
-            lands on their screen within a couple of seconds. */}
+        {/* Tells the counter this table is done and wants to settle up. */}
         {token ? (
-          <button
-            type="button"
-            disabled={checkingOut}
-            onClick={() => {
-              setCheckingOut(true);
-              notify("The counter has been told — someone is on the way", "good");
-              void fetch("/api/call", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  slug,
-                  token,
-                  reason: "checkout",
-                  sessionId: state.sessionId,
-                }),
-              }).catch(() => setCheckingOut(false));
-            }}
-            className="mt-3 h-12 w-full rounded-full bg-accent text-sm font-semibold text-accent-ink transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
-          >
-            {checkingOut ? "The counter knows" : "Checkout"}
-          </button>
+          <div className="mt-3 flex flex-col gap-1.5">
+            {state.stage !== "served" ? (
+              <p className="text-center text-xs text-ink-3">
+                Checkout will be available once your food is served
+              </p>
+            ) : null}
+            <button
+              type="button"
+              disabled={checkingOut || state.stage !== "served"}
+              onClick={() => {
+                setCheckingOut(true);
+                notify("The counter has been told — someone is on the way", "good");
+                void fetch("/api/call", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    slug,
+                    token,
+                    reason: "checkout",
+                    sessionId: state.sessionId,
+                  }),
+                }).catch(() => setCheckingOut(false));
+              }}
+              className={clsx(
+                "h-12 w-full rounded-full text-sm font-semibold transition active:scale-[0.99] shadow-sm",
+                state.stage === "served"
+                  ? "bg-accent text-accent-ink hover:brightness-110"
+                  : "bg-surface-2 text-ink-3 cursor-not-allowed border border-line opacity-75",
+              )}
+            >
+              {checkingOut ? "The counter knows" : state.stage === "served" ? "Checkout" : "In Kitchen"}
+            </button>
+          </div>
         ) : null}
 
         {/* Suggestions and details come after the commitment, never before. */}

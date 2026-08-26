@@ -49,17 +49,6 @@ export function Navbar({
             <h1 className="truncate text-sm leading-tight font-semibold text-ink">
               {restaurant.name}
             </h1>
-            <p className="mt-0.5 flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className={`size-1.5 rounded-full ${
-                  restaurant.isOpen ? "bg-veg" : "bg-nonveg"
-                }`}
-              />
-              <span className="num text-[0.6875rem] text-ink-3">
-                {restaurant.isOpen ? "Open now" : "Closed"}
-              </span>
-            </p>
           </div>
 
           <LanguagePicker active={language} />
