@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 /* Dev hot-reload would otherwise open a new pool on every edit. */
 const globalForPrisma = globalThis as unknown as {

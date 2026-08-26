@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client"],
-  outputFileTracingIncludes: {
-    "/**": ["./src/generated/prisma/**/*", "./prisma/**/*"],
-  },
+  turbopack: {},
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
