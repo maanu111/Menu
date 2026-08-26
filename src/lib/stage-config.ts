@@ -39,7 +39,7 @@ export function parseStageConfig(raw: unknown): Record<StageKey, StageItemConfig
     } else if (val && typeof val === "object") {
       const item = val as { label?: unknown; enabled?: unknown };
       const label = typeof item.label === "string" && item.label.trim() ? item.label.trim() : DEFAULT_STAGE_CONFIG[key].label;
-      const enabled = key === "PLACED" || key === "SERVED" ? true : item.enabled !== false;
+      const enabled = item.enabled !== false;
       result[key] = { label, enabled };
     }
   }
@@ -50,9 +50,14 @@ export function parseStageConfig(raw: unknown): Record<StageKey, StageItemConfig
 export function getActiveStages(configRaw: unknown): Array<{ key: StageKey; label: string }> {
   const parsed = parseStageConfig(configRaw);
   const orderedKeys: StageKey[] = ["PLACED", "PREPARING", "READY", "SERVED"];
-  return orderedKeys
+  const active = orderedKeys
     .filter((k) => parsed[k].enabled)
     .map((k) => ({ key: k, label: parsed[k].label }));
+
+  if (active.length === 0) {
+    return [{ key: "SERVED", label: parsed.SERVED.label || "Served" }];
+  }
+  return active;
 }
 
 export function getNextStage(current: string, activeStages: Array<{ key: StageKey }>): StageKey | null {
