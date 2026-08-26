@@ -75,7 +75,9 @@ export function MenuShell({
         language={language}
       />
 
-      <OrderModeSheet restaurant={restaurant} table={table} tables={tables} language={language} />
+      {restaurant.isOpen ? (
+        <OrderModeSheet restaurant={restaurant} table={table} tables={tables} language={language} />
+      ) : null}
 
       <main className="mx-auto w-full max-w-140 px-4 sm:px-6">
         {!restaurant.isOpen ? (

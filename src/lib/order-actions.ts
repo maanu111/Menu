@@ -137,6 +137,9 @@ export async function placeOrder(input: PlaceOrderInput) {
   if (!restaurant) {
     return { ok: false as const, message: "This restaurant isn't taking orders." };
   }
+  if (!restaurant.isOpen) {
+    return { ok: false as const, message: "This restaurant is currently closed." };
+  }
 
   /* A table order needs a live table; a delivery order needs none. Either way
      the destination is settled before a single price is read. */
