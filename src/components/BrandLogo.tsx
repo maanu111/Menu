@@ -37,8 +37,8 @@ export function BrandLogo({
   return (
     <div
       className={clsx(
-        "relative shrink-0 overflow-hidden rounded-2xl border border-line bg-surface-2",
-        className,
+        "relative shrink-0 overflow-hidden border border-line",
+        className ? className : "rounded-2xl bg-surface-2",
       )}
     >
       {!loaded && !failed ? (

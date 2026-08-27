@@ -43,8 +43,8 @@ export function Navbar({
             name={restaurant.name}
             widthPx={240}
             heightPx={80}
-            fit="contain"
-            className="h-10 w-28 sm:h-11 sm:w-32 rounded-lg border border-line/60 bg-[#0B1528] p-0.5 shadow-xs"
+            fit="cover"
+            className="h-10 w-28 sm:h-11 sm:w-32 rounded-lg border border-line/60 bg-[#0B1528] shadow-xs"
           />
 
           <div className="min-w-0 flex-1" />
