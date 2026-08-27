@@ -37,14 +37,14 @@ export function Navbar({
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-line bg-ground/85 backdrop-blur-md">
-        <nav className="mx-auto flex h-[4.5rem] w-full max-w-140 items-center gap-3 px-4 sm:px-6">
+        <nav className="mx-auto flex h-14 w-full max-w-140 items-center gap-3 px-4 sm:px-6">
           <BrandLogo
             src={restaurant.logoSrc}
             name={restaurant.name}
-            widthPx={350}
-            heightPx={100}
-            fit="fill"
-            className="h-14 w-56 sm:h-15 sm:w-68 rounded-xl border border-line/70 bg-[#0B1528] shadow-sm"
+            widthPx={240}
+            heightPx={80}
+            fit="contain"
+            className="h-10 w-28 sm:h-11 sm:w-32 rounded-lg border border-line/60 bg-[#0B1528] p-0.5 shadow-xs"
           />
 
           <div className="min-w-0 flex-1" />
