@@ -35,7 +35,11 @@ export async function generateMetadata({
       statusBarStyle: "default" as const,
     },
     icons: {
-      apple: `/r/${slug}/icon?size=192`,
+      icon: [
+        { url: menu.restaurant.logoSrc || "/kt.jpeg", type: "image/jpeg" },
+        { url: "/favicon.ico" },
+      ],
+      apple: menu.restaurant.logoSrc || `/r/${slug}/icon?size=192`,
     },
   };
 }
