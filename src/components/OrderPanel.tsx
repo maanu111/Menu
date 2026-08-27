@@ -202,7 +202,7 @@ export function OrderPanel({
           {pending
             ? "Sending…"
             : belowMinimum
-              ? `Minimum ₹${restaurant.pickupMin}`
+              ? `Minimum ¥${restaurant.pickupMin}`
               : forPickup
                 ? "Place pickup order"
                 : "Send to kitchen"}

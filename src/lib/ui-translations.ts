@@ -17,7 +17,7 @@ export interface UIStrings {
   dineInDesc: string;         // "Order to your table …"
   pickupTakeaway: string;     // "Pickup / takeaway"
   collectAtCounter: string;   // "Collect it at the counter."
-  minimum: string;            // "Minimum ₹{n}."
+  minimum: string;            // "Minimum ¥{n}."
 
   /* ---- OrderModeSheet: guests step ---- */
   howManyEating: string;      // "How many are eating?"
@@ -52,7 +52,7 @@ export interface UIStrings {
 
   /* ---- PickupStrip ---- */
   collectingFrom: string;     // "Collecting from {name}"
-  minimumOrder: string;       // "Minimum order ₹{n}"
+  minimumOrder: string;       // "Minimum order ¥{n}"
   eatingInInstead: string;    // "Eating in instead?"
 
   /* ---- Bottom bar / MenuShell ---- */
@@ -82,7 +82,7 @@ const en: UIStrings = {
   dineInDesc: "Order to your table and follow it as it cooks.",
   pickupTakeaway: "Pickup / takeaway",
   collectAtCounter: "Collect it at the counter.",
-  minimum: "Minimum ₹{n}.",
+  minimum: "Minimum ¥{n}.",
 
   howManyEating: "How many are eating?",
   portionNote: "So the kitchen knows how much to make.",
@@ -110,7 +110,7 @@ const en: UIStrings = {
   helpsUsPortion: "Helps us portion and serve",
 
   collectingFrom: "Collecting from {name}",
-  minimumOrder: "Minimum order ₹{n}",
+  minimumOrder: "Minimum order ¥{n}",
   eatingInInstead: "Eating in instead?",
 
   viewOrder: "View order",
@@ -138,7 +138,7 @@ const hi: UIStrings = {
   dineInDesc: "अपनी टेबल पर ऑर्डर करें और बनते हुए ट्रैक करें।",
   pickupTakeaway: "पिकअप / पार्सल",
   collectAtCounter: "काउंटर से ले जाएँ।",
-  minimum: "न्यूनतम ₹{n}।",
+  minimum: "न्यूनतम ¥{n}।",
 
   howManyEating: "कितने लोग खा रहे हैं?",
   portionNote: "ताकि किचन को पता चले कितना बनाना है।",
@@ -166,7 +166,7 @@ const hi: UIStrings = {
   helpsUsPortion: "परोसने में मदद करता है",
 
   collectingFrom: "{name} से ले जा रहे हैं",
-  minimumOrder: "न्यूनतम ऑर्डर ₹{n}",
+  minimumOrder: "न्यूनतम ऑर्डर ¥{n}",
   eatingInInstead: "यहीं खाना है?",
 
   viewOrder: "ऑर्डर देखें",
@@ -194,7 +194,7 @@ const kn: UIStrings = {
   dineInDesc: "ನಿಮ್ಮ ಟೇಬಲ್‌ಗೆ ಆರ್ಡರ್ ಮಾಡಿ ಮತ್ತು ಅಡುಗೆ ಮಾಡುವುದನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.",
   pickupTakeaway: "ಪಿಕ್‌ಅಪ್ / ಪಾರ್ಸೆಲ್",
   collectAtCounter: "ಕೌಂಟರ್‌ನಲ್ಲಿ ತೆಗೆದುಕೊಳ್ಳಿ.",
-  minimum: "ಕನಿಷ್ಠ ₹{n}.",
+  minimum: "ಕನಿಷ್ಠ ¥{n}.",
 
   howManyEating: "ಎಷ್ಟು ಜನ ತಿನ್ನುತ್ತಿದ್ದಾರೆ?",
   portionNote: "ಅಡುಗೆಮನೆಗೆ ಎಷ್ಟು ಮಾಡಬೇಕೆಂದು ತಿಳಿಯುತ್ತದೆ.",
@@ -222,7 +222,7 @@ const kn: UIStrings = {
   helpsUsPortion: "ಪರಿಮಾಣ ಮತ್ತು ಸೇವೆಗೆ ಸಹಾಯ",
 
   collectingFrom: "{name} ನಿಂದ ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದ್ದಾರೆ",
-  minimumOrder: "ಕನಿಷ್ಠ ಆರ್ಡರ್ ₹{n}",
+  minimumOrder: "ಕನಿಷ್ಠ ಆರ್ಡರ್ ¥{n}",
   eatingInInstead: "ಬದಲಿಗೆ ಇಲ್ಲಿ ತಿನ್ನುತ್ತೀರಾ?",
 
   viewOrder: "ಆರ್ಡರ್ ನೋಡಿ",
@@ -250,7 +250,7 @@ const ta: UIStrings = {
   dineInDesc: "உங்கள் டேபிளுக்கு ஆர்டர் செய்து சமையலை கண்காணியுங்கள்.",
   pickupTakeaway: "பிக்அப் / பார்சல்",
   collectAtCounter: "கவுண்டரில் எடுத்துக்கொள்ளுங்கள்.",
-  minimum: "குறைந்தபட்சம் ₹{n}.",
+  minimum: "குறைந்தபட்சம் ¥{n}.",
 
   howManyEating: "எத்தனை பேர் சாப்பிடுகிறார்கள்?",
   portionNote: "சமையலறைக்கு எவ்வளவு செய்ய வேண்டும் என்று தெரியும்.",
@@ -278,7 +278,7 @@ const ta: UIStrings = {
   helpsUsPortion: "பரிமாறவும் சேவை செய்யவும் உதவுகிறது",
 
   collectingFrom: "{name} இலிருந்து எடுக்கிறீர்கள்",
-  minimumOrder: "குறைந்தபட்ச ஆர்டர் ₹{n}",
+  minimumOrder: "குறைந்தபட்ச ஆர்டர் ¥{n}",
   eatingInInstead: "பதிலாக இங்கே சாப்பிடுகிறீர்களா?",
 
   viewOrder: "ஆர்டர் பார்க்க",
@@ -306,7 +306,7 @@ const te: UIStrings = {
   dineInDesc: "మీ టేబుల్‌కి ఆర్డర్ చేసి వంట ట్రాక్ చేయండి.",
   pickupTakeaway: "పికప్ / పార్సెల్",
   collectAtCounter: "కౌంటర్ వద్ద తీసుకోండి.",
-  minimum: "కనిష్టం ₹{n}.",
+  minimum: "కనిష్టం ¥{n}.",
 
   howManyEating: "ఎంతమంది తింటున్నారు?",
   portionNote: "వంటగది ఎంత చేయాలో తెలుస్తుంది.",
@@ -334,7 +334,7 @@ const te: UIStrings = {
   helpsUsPortion: "పరిమాణం మరియు సేవకు సహాయం",
 
   collectingFrom: "{name} నుండి తీసుకుంటున్నారు",
-  minimumOrder: "కనిష్ట ఆర్డర్ ₹{n}",
+  minimumOrder: "కనిష్ట ఆర్డర్ ¥{n}",
   eatingInInstead: "బదులుగా ఇక్కడ తింటారా?",
 
   viewOrder: "ఆర్డర్ చూడండి",
@@ -362,7 +362,7 @@ const ml: UIStrings = {
   dineInDesc: "നിങ്ങളുടെ ടേബിളിലേക്ക് ഓർഡർ ചെയ്ത് പാചകം ട്രാക്ക് ചെയ്യൂ.",
   pickupTakeaway: "പിക്കപ്പ് / പാർസൽ",
   collectAtCounter: "കൗണ്ടറിൽ നിന്ന് എടുക്കൂ.",
-  minimum: "കുറഞ്ഞത് ₹{n}.",
+  minimum: "കുറഞ്ഞത് ¥{n}.",
 
   howManyEating: "എത്ര പേർ കഴിക്കുന്നു?",
   portionNote: "അടുക്കളയ്ക്ക് എത്ര ഉണ്ടാക്കണമെന്ന് അറിയാം.",
@@ -390,7 +390,7 @@ const ml: UIStrings = {
   helpsUsPortion: "വിളമ്പാനും സേവിക്കാനും സഹായിക്കുന്നു",
 
   collectingFrom: "{name} ൽ നിന്ന് എടുക്കുന്നു",
-  minimumOrder: "കുറഞ്ഞ ഓർഡർ ₹{n}",
+  minimumOrder: "കുറഞ്ഞ ഓർഡർ ¥{n}",
   eatingInInstead: "പകരം ഇവിടെ കഴിക്കുന്നോ?",
 
   viewOrder: "ഓർഡർ കാണുക",
@@ -418,7 +418,7 @@ const mr: UIStrings = {
   dineInDesc: "तुमच्या टेबलवर ऑर्डर करा आणि बनताना ट्रॅक करा.",
   pickupTakeaway: "पिकअप / पार्सल",
   collectAtCounter: "काउंटरवरून घ्या.",
-  minimum: "किमान ₹{n}.",
+  minimum: "किमान ¥{n}.",
 
   howManyEating: "किती जण जेवत आहेत?",
   portionNote: "म्हणजे किचनला किती बनवायचे ते कळेल.",
@@ -446,7 +446,7 @@ const mr: UIStrings = {
   helpsUsPortion: "वाढण्यास मदत करते",
 
   collectingFrom: "{name} वरून घेत आहात",
-  minimumOrder: "किमान ऑर्डर ₹{n}",
+  minimumOrder: "किमान ऑर्डर ¥{n}",
   eatingInInstead: "इथेच जेवायचे आहे?",
 
   viewOrder: "ऑर्डर पहा",
@@ -474,7 +474,7 @@ const bn: UIStrings = {
   dineInDesc: "আপনার টেবিলে অর্ডার করুন এবং রান্না ট্র্যাক করুন।",
   pickupTakeaway: "পিকআপ / পার্সেল",
   collectAtCounter: "কাউন্টার থেকে নিন।",
-  minimum: "ন্যূনতম ₹{n}।",
+  minimum: "ন্যূনতম ¥{n}।",
 
   howManyEating: "কতজন খাচ্ছেন?",
   portionNote: "রান্নাঘর জানবে কতটুকু বানাতে হবে।",
@@ -502,7 +502,7 @@ const bn: UIStrings = {
   helpsUsPortion: "পরিবেশনে সাহায্য করে",
 
   collectingFrom: "{name} থেকে নিচ্ছেন",
-  minimumOrder: "ন্যূনতম অর্ডার ₹{n}",
+  minimumOrder: "ন্যূনতম অর্ডার ¥{n}",
   eatingInInstead: "বদলে এখানে খাচ্ছেন?",
 
   viewOrder: "অর্ডার দেখুন",
@@ -530,7 +530,7 @@ const gu: UIStrings = {
   dineInDesc: "તમારા ટેબલ પર ઓર્ડર કરો અને રસોઈ ટ્રેક કરો.",
   pickupTakeaway: "પિકઅપ / પાર્સલ",
   collectAtCounter: "કાઉન્ટર પરથી લઈ જાવ.",
-  minimum: "ન્યૂનતમ ₹{n}.",
+  minimum: "ન્યૂનતમ ¥{n}.",
 
   howManyEating: "કેટલા લોકો ખાઈ રહ્યા છે?",
   portionNote: "જેથી રસોડાને ખબર પડે કેટલું બનાવવું.",
@@ -558,7 +558,7 @@ const gu: UIStrings = {
   helpsUsPortion: "પીરસવામાં મદદ કરે છે",
 
   collectingFrom: "{name} થી લઈ રહ્યા છો",
-  minimumOrder: "ન્યૂનતમ ઓર્ડર ₹{n}",
+  minimumOrder: "ન્યૂનતમ ઓર્ડર ¥{n}",
   eatingInInstead: "અહીં જ ખાવું છે?",
 
   viewOrder: "ઓર્ડર જુઓ",
@@ -586,7 +586,7 @@ const pa: UIStrings = {
   dineInDesc: "ਆਪਣੇ ਟੇਬਲ 'ਤੇ ਆਰਡਰ ਕਰੋ ਅਤੇ ਪਕਾਉਣਾ ਟ੍ਰੈਕ ਕਰੋ.",
   pickupTakeaway: "ਪਿਕਅੱਪ / ਪਾਰਸਲ",
   collectAtCounter: "ਕਾਊਂਟਰ ਤੋਂ ਲੈ ਜਾਓ.",
-  minimum: "ਘੱਟੋ-ਘੱਟ ₹{n}.",
+  minimum: "ਘੱਟੋ-ਘੱਟ ¥{n}.",
 
   howManyEating: "ਕਿੰਨੇ ਲੋਕ ਖਾ ਰਹੇ ਹਨ?",
   portionNote: "ਤਾਂ ਜੋ ਰਸੋਈ ਨੂੰ ਪਤਾ ਲੱਗੇ ਕਿੰਨਾ ਬਣਾਉਣਾ ਹੈ.",
@@ -614,7 +614,7 @@ const pa: UIStrings = {
   helpsUsPortion: "ਪਰੋਸਣ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ",
 
   collectingFrom: "{name} ਤੋਂ ਲੈ ਰਹੇ ਹੋ",
-  minimumOrder: "ਘੱਟੋ-ਘੱਟ ਆਰਡਰ ₹{n}",
+  minimumOrder: "ਘੱਟੋ-ਘੱਟ ਆਰਡਰ ¥{n}",
   eatingInInstead: "ਇੱਥੇ ਹੀ ਖਾਣਾ ਹੈ?",
 
   viewOrder: "ਆਰਡਰ ਵੇਖੋ",
@@ -642,7 +642,7 @@ const ur: UIStrings = {
   dineInDesc: "اپنی ٹیبل پر آرڈر کریں اور پکنے کی نگرانی کریں۔",
   pickupTakeaway: "پک اپ / پارسل",
   collectAtCounter: "کاؤنٹر سے لے جائیں۔",
-  minimum: "کم از کم ₹{n}۔",
+  minimum: "کم از کم ¥{n}۔",
 
   howManyEating: "کتنے لوگ کھا رہے ہیں؟",
   portionNote: "تاکہ باورچی خانے کو پتا ہو کتنا بنانا ہے۔",
@@ -670,7 +670,7 @@ const ur: UIStrings = {
   helpsUsPortion: "پیش کرنے میں مدد کرتا ہے",
 
   collectingFrom: "{name} سے لے رہے ہیں",
-  minimumOrder: "کم از کم آرڈر ₹{n}",
+  minimumOrder: "کم از کم آرڈر ¥{n}",
   eatingInInstead: "یہیں کھانا ہے؟",
 
   viewOrder: "آرڈر دیکھیں",
@@ -698,7 +698,7 @@ const ar: UIStrings = {
   dineInDesc: "اطلب إلى طاولتك وتابع الطهي.",
   pickupTakeaway: "استلام / وجبات خارجية",
   collectAtCounter: "استلم من الكاونتر.",
-  minimum: "الحد الأدنى ₹{n}.",
+  minimum: "الحد الأدنى ¥{n}.",
 
   howManyEating: "كم عدد الأشخاص؟",
   portionNote: "حتى يعرف المطبخ الكمية المطلوبة.",
@@ -726,7 +726,7 @@ const ar: UIStrings = {
   helpsUsPortion: "يساعد في التقديم",
 
   collectingFrom: "الاستلام من {name}",
-  minimumOrder: "الحد الأدنى للطلب ₹{n}",
+  minimumOrder: "الحد الأدنى للطلب ¥{n}",
   eatingInInstead: "تريد الأكل هنا بدلاً من ذلك؟",
 
   viewOrder: "عرض الطلب",
@@ -754,7 +754,7 @@ const fr: UIStrings = {
   dineInDesc: "Commandez à votre table et suivez la cuisson.",
   pickupTakeaway: "À emporter",
   collectAtCounter: "Récupérez au comptoir.",
-  minimum: "Minimum ₹{n}.",
+  minimum: "Minimum ¥{n}.",
 
   howManyEating: "Combien de personnes mangent ?",
   portionNote: "Pour que la cuisine sache combien préparer.",
@@ -782,7 +782,7 @@ const fr: UIStrings = {
   helpsUsPortion: "Aide à portionner et servir",
 
   collectingFrom: "Retrait chez {name}",
-  minimumOrder: "Commande minimum ₹{n}",
+  minimumOrder: "Commande minimum ¥{n}",
   eatingInInstead: "Manger sur place plutôt ?",
 
   viewOrder: "Voir la commande",
@@ -810,7 +810,7 @@ const de: UIStrings = {
   dineInDesc: "Bestellen Sie an Ihrem Tisch und verfolgen Sie die Zubereitung.",
   pickupTakeaway: "Zum Mitnehmen",
   collectAtCounter: "An der Theke abholen.",
-  minimum: "Mindestens ₹{n}.",
+  minimum: "Mindestens ¥{n}.",
 
   howManyEating: "Wie viele Personen essen?",
   portionNote: "Damit die Küche weiß, wie viel zubereitet werden soll.",
@@ -838,7 +838,7 @@ const de: UIStrings = {
   helpsUsPortion: "Hilft beim Portionieren und Servieren",
 
   collectingFrom: "Abholung bei {name}",
-  minimumOrder: "Mindestbestellung ₹{n}",
+  minimumOrder: "Mindestbestellung ¥{n}",
   eatingInInstead: "Doch lieber hier essen?",
 
   viewOrder: "Bestellung ansehen",
@@ -866,7 +866,7 @@ const es: UIStrings = {
   dineInDesc: "Pida en su mesa y siga la cocción.",
   pickupTakeaway: "Para llevar",
   collectAtCounter: "Recoja en el mostrador.",
-  minimum: "Mínimo ₹{n}.",
+  minimum: "Mínimo ¥{n}.",
 
   howManyEating: "¿Cuántas personas comen?",
   portionNote: "Para que la cocina sepa cuánto preparar.",
@@ -894,7 +894,7 @@ const es: UIStrings = {
   helpsUsPortion: "Ayuda a porcionar y servir",
 
   collectingFrom: "Recogiendo de {name}",
-  minimumOrder: "Pedido mínimo ₹{n}",
+  minimumOrder: "Pedido mínimo ¥{n}",
   eatingInInstead: "¿Prefiere comer aquí?",
 
   viewOrder: "Ver pedido",
@@ -922,7 +922,7 @@ const zh: UIStrings = {
   dineInDesc: "在您的桌上点餐并跟踪烹饪进度。",
   pickupTakeaway: "自取 / 外带",
   collectAtCounter: "在柜台领取。",
-  minimum: "最低 ₹{n}。",
+  minimum: "最低 ¥{n}。",
 
   howManyEating: "几位用餐？",
   portionNote: "方便厨房了解分量。",
@@ -950,7 +950,7 @@ const zh: UIStrings = {
   helpsUsPortion: "帮助我们分量和服务",
 
   collectingFrom: "从 {name} 取餐",
-  minimumOrder: "最低订单 ₹{n}",
+  minimumOrder: "最低订单 ¥{n}",
   eatingInInstead: "改为堂食？",
 
   viewOrder: "查看订单",
@@ -978,7 +978,7 @@ const ja: UIStrings = {
   dineInDesc: "テーブルから注文して調理状況を追跡しましょう。",
   pickupTakeaway: "テイクアウト",
   collectAtCounter: "カウンターでお受け取りください。",
-  minimum: "最低 ₹{n}。",
+  minimum: "最低 ¥{n}。",
 
   howManyEating: "何名様でお食事ですか？",
   portionNote: "キッチンが量を把握するためです。",
@@ -1006,7 +1006,7 @@ const ja: UIStrings = {
   helpsUsPortion: "盛り付けとサービスに役立ちます",
 
   collectingFrom: "{name} でお受け取り",
-  minimumOrder: "最低注文額 ₹{n}",
+  minimumOrder: "最低注文額 ¥{n}",
   eatingInInstead: "店内でお食事にしますか？",
 
   viewOrder: "注文を見る",

@@ -1,14 +1,14 @@
-/** Indian grouping (1,20,500) — the format guests actually read on a bill. */
-const inr = new Intl.NumberFormat("en-IN", {
+/** Japanese Yen (¥) grouping formatting. */
+const jpy = new Intl.NumberFormat("ja-JP", {
   maximumFractionDigits: 0,
 });
 
-export function money(paise: number) {
-  return `₹${inr.format(Math.round(paise))}`;
+export function money(amount: number) {
+  return `¥${jpy.format(Math.round(amount))}`;
 }
 
 export function orderCode(seed: number) {
-  return `KT-${String(seed % 10000).padStart(4, "0")}`;
+  return `DQ-${String(seed % 10000).padStart(4, "0")}`;
 }
 
 export function clsx(...parts: (string | false | null | undefined)[]) {

@@ -65,7 +65,7 @@ export async function checkOffer(
     const short = (offer.minSpendPaise - subtotalPaise) / 100;
     return {
       ok: false as const,
-      message: `Spend ₹${Math.ceil(short)} more to use ${trimmed}.`,
+      message: `Spend ¥${Math.ceil(short)} more to use ${trimmed}.`,
     };
   }
 
@@ -81,7 +81,7 @@ export async function checkOffer(
     label:
       offer.kind === "PERCENT"
         ? `${offer.value}% off`
-        : `₹${Math.round(offer.value / 100)} off`,
+        : `¥${Math.round(offer.value / 100)} off`,
   };
 }
 
@@ -238,7 +238,7 @@ export async function placeOrder(input: PlaceOrderInput) {
     const short = (restaurant.pickupMinPaise - subtotal) / 100;
     return {
       ok: false as const,
-      message: `Pickup orders start at ₹${Math.round(restaurant.pickupMinPaise / 100)} — add ₹${Math.ceil(short)} more.`,
+      message: `Pickup orders start at ¥${Math.round(restaurant.pickupMinPaise / 100)} — add ¥${Math.ceil(short)} more.`,
     };
   }
 
