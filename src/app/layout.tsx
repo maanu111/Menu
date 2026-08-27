@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "Table menu",
   description:
     "Scan, browse the menu, and order from your table without waiting for a server.",
+  icons: {
+    icon: [
+      { url: "/logo.jpeg", type: "image/jpeg" },
+      { url: "/favicon.ico" },
+    ],
+    apple: [{ url: "/logo.jpeg" }],
+  },
 };
 
 export const viewport: Viewport = {
