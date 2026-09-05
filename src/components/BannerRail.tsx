@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { clsx } from "@/lib/format";
+import { clsx, resolveMediaUrl } from "@/lib/format";
 
 export type BannerSlide = {
   id: string;
@@ -77,15 +77,7 @@ export function BannerRail({ banners }: { banners: BannerSlide[] }) {
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={
-                    banner.imageUrl.startsWith("http://") || banner.imageUrl.startsWith("https://") || banner.imageUrl.startsWith("data:")
-                      ? banner.imageUrl
-                      : banner.imageUrl.startsWith("/uploads/")
-                        ? (typeof window !== "undefined" && window.location.port === "3003"
-                            ? `http://${window.location.hostname}:3002${banner.imageUrl}`
-                            : banner.imageUrl)
-                        : banner.imageUrl
-                  }
+                  src={resolveMediaUrl(banner.imageUrl) ?? banner.imageUrl}
                   alt={banner.headline ?? ""}
                   loading={i === 0 ? "eager" : "lazy"}
                   className="absolute inset-0 size-full object-cover"

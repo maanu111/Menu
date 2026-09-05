@@ -8,6 +8,7 @@ import { getTableMenu } from "@/lib/menu-queries";
 import { qrSvg, tableUrl } from "@/lib/qr";
 import { brandStyle } from "@/lib/brand";
 import { pickLanguage } from "@/lib/pick-language";
+import { resolveMediaUrl } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,9 @@ export async function generateMetadata({
 }) {
   const { slug, token } = await params;
   const menu = await getTableMenu(slug, token);
-  if (!menu) return { title: "Table menu" };
+  if (!menu) return { title: "Menu" };
+  const logoUrl = resolveMediaUrl(menu.restaurant.logoSrc) || "/kt.jpeg";
+
   return {
     title: `${menu.restaurant.name} · Table ${menu.table.number}`,
     description:
@@ -36,10 +39,10 @@ export async function generateMetadata({
     },
     icons: {
       icon: [
-        { url: menu.restaurant.logoSrc || "/kt.jpeg", type: "image/jpeg" },
+        { url: logoUrl, type: "image/jpeg" },
         { url: "/favicon.ico" },
       ],
-      apple: menu.restaurant.logoSrc || `/r/${slug}/icon?size=192`,
+      apple: logoUrl,
     },
   };
 }

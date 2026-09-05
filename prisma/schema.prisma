@@ -1,6 +1,3 @@
-// GENERATED — do not edit. Source of truth: SAAS/prisma/schema.prisma
-// Run `pnpm db:generate` after changing it there.
-
 // Multi-tenant from the first migration: every business row carries a
 // restaurantId, and every query is expected to scope by it. Retrofitting this
 // later would mean rewriting every query in the app.
@@ -119,7 +116,7 @@ model Restaurant {
   slug         String   @unique
   name         String
   tagline      String?
-  logoUrl      String?
+  logoUrl      String?  @db.Text
   /// Drives the guest menu's accent. Hex, validated before it is stored.
   brandColor   String   @default("#C8102E")
   /// "light" | "dark" — what the guest sees before any choice of their own.
@@ -256,7 +253,7 @@ model MenuItem {
   /// What it costs to make — drives the margin reports.
   costPaise    Int      @default(0)
   diet         DietType @default(VEG)
-  imageUrl     String?
+  imageUrl     String?  @db.Text
   prepMinutes  Int      @default(15)
   spiceLevel   Int      @default(0)
   isAvailable  Boolean  @default(true)

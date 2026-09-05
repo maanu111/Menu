@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { clsx } from "@/lib/format";
+import { clsx, resolveMediaUrl } from "@/lib/format";
 
 /**
  * Shows the logo skeleton until the file actually decodes, then cross-fades.
@@ -25,6 +25,7 @@ export function BrandLogo({
   heightPx?: number;
   fit?: "contain" | "cover" | "fill";
 }) {
+  const resolvedSrc = resolveMediaUrl(src) || src;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -55,10 +56,11 @@ export function BrandLogo({
         </div>
       ) : (
         <Image
-          src={src}
+          src={resolvedSrc}
           alt={`${name} logo`}
           width={widthPx ?? sizePx}
           height={heightPx ?? sizePx}
+          unoptimized
           priority
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}

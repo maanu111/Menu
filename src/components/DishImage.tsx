@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { clsx } from "@/lib/format";
+import { clsx, resolveMediaUrl } from "@/lib/format";
 import type { MenuItem } from "@/lib/types";
 
 /**
@@ -21,16 +21,7 @@ export function DishImage({
   /** Set on the few dishes above the fold so the LCP image isn't lazy. */
   priority?: boolean; 
 }) {
-  const rawSrc = item.imageUrl;
-  const src = rawSrc
-    ? rawSrc.startsWith("http://") || rawSrc.startsWith("https://") || rawSrc.startsWith("data:")
-      ? rawSrc
-      : rawSrc.startsWith("/uploads/")
-        ? (typeof window !== "undefined" && window.location.port === "3003"
-            ? `http://${window.location.hostname}:3002${rawSrc}`
-            : rawSrc)
-        : rawSrc
-    : null;
+  const src = resolveMediaUrl(item.imageUrl);
 
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(!src);

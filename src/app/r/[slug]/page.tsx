@@ -6,6 +6,7 @@ import { CartProvider } from "@/lib/cart-store";
 import { getRestaurantMenu } from "@/lib/menu-queries";
 import { brandStyle } from "@/lib/brand";
 import { pickLanguage } from "@/lib/pick-language";
+import { resolveMediaUrl } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const menu = await getRestaurantMenu(slug);
   if (!menu) return { title: "Menu" };
+  const logoUrl = resolveMediaUrl(menu.restaurant.logoSrc) || "/kt.jpeg";
   return {
     title: `${menu.restaurant.name} · Menu`,
     description:
-      menu.restaurant.tagline || `Order from ${menu.restaurant.name}.`,
+      menu.restaurant.tagline ||
+      `Table orders and collection at ${menu.restaurant.name}.`,
     /* Makes the menu installable, as this restaurant rather than as a page. */
     manifest: `/r/${slug}/manifest.webmanifest`,
     appleWebApp: {
@@ -30,10 +33,10 @@ export async function generateMetadata({
     },
     icons: {
       icon: [
-        { url: menu.restaurant.logoSrc || "/kt.jpeg", type: "image/jpeg" },
+        { url: logoUrl, type: "image/jpeg" },
         { url: "/favicon.ico" },
       ],
-      apple: menu.restaurant.logoSrc || `/r/${slug}/icon?size=192`,
+      apple: logoUrl,
     },
   };
 }

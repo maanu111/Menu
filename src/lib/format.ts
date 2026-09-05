@@ -14,3 +14,23 @@ export function orderCode(seed: number) {
 export function clsx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
 }
+
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+  if (url.startsWith("/uploads/")) {
+    if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+      return `http://localhost:3002${url}`;
+    }
+    const adminUrl =
+      process.env.NEXT_PUBLIC_ADMIN_URL || "https://quantive-labs.com";
+    return `${adminUrl}${url}`;
+  }
+  return url;
+}
